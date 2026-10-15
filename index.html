@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f0e7" />
+    <title>Squishdoku — 7×7 Sudoku</title>
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="intro" aria-labelledby="page-title">
+        <p class="eyebrow">A different kind of sudoku</p>
+        <h1 id="page-title">Squishdoku</h1>
+        <p class="lede">A compact 7×7 number puzzle with overlapping regions. Every press creates a fresh, fully solved grid.</p>
+        <button id="generate" type="button">
+          <span class="button-mark" aria-hidden="true">✦</span>
+          Generate a grid
+        </button>
+        <p id="status" class="status" aria-live="polite">Ready when you are.</p>
+      </section>
+      <section class="puzzle-card" aria-label="Generated Squishdoku grid">
+        <div class="card-topline"><span>Completed grid</span><span>1—9</span></div>
+        <div id="grid" class="grid" role="grid" aria-label="Completed Squishdoku grid"></div>
+        <div class="legend"><i aria-hidden="true"></i><span>Dashed lines mark the squish seams</span></div>
+      </section>
+    </main>
+    <footer>Rows, columns, and every overlapping 3×3 region contain no repeats.</footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
