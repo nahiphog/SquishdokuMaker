@@ -38,6 +38,7 @@ const copyButton = document.querySelector<HTMLButtonElement>('#copy-built')!;
 const imageButton = document.querySelector<HTMLButtonElement>('#image-built')!;
 const status = document.querySelector<HTMLParagraphElement>('#build-status')!;
 const filledCount = document.querySelector<HTMLSpanElement>('#filled-count')!;
+const highlightedCells = document.querySelector<HTMLParagraphElement>('#highlighted-cells')!;
 const walkthrough = document.querySelector<HTMLElement>('#custom-walkthrough')!;
 const cells: HTMLDivElement[] = [];
 let isBuilding = false;
@@ -52,7 +53,12 @@ for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) {
   cell.addEventListener('click', toggle); cell.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(); } });
   cells.push(cell); grid.append(cell);
 }
-function updateFilledCount(): void { const count = cells.filter((cell) => cell.classList.contains('highlighted')).length; filledCount.textContent = `${count} cell${count === 1 ? '' : 's'} filled`; }
+function updateFilledCount(): void {
+  const selected = cells.flatMap((cell, index) => cell.classList.contains('highlighted') ? [index] : []);
+  const count = selected.length; filledCount.textContent = `${count} cell${count === 1 ? '' : 's'} filled`;
+  const coordinates = selected.map((index) => `R${Math.floor(index / 7) + 1}C${(index % 7) + 1}`);
+  highlightedCells.textContent = `Highlighted cells: ${coordinates.length ? coordinates.join(', ') : 'none'}`;
+}
 function renderPuzzle(puzzle: Board): void {
   builtGrid.replaceChildren();
   puzzle.forEach((row, r) => row.forEach((value, c) => {
