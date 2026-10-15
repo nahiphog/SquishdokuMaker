@@ -73,20 +73,54 @@ function generateBoard(): Board {
   return board;
 }
 
-const grid = document.querySelector<HTMLDivElement>('#grid')!;
+function countSolutions(board: Board, limit = 2): number {
+  let count = 0;
+  const search = (): void => {
+    if (count >= limit) return;
+    const cell = nextCell(board);
+    if (!cell) {
+      count++;
+      return;
+    }
+    const [row, col, options] = cell;
+    for (const value of options) {
+      board[row][col] = value;
+      search();
+      board[row][col] = 0;
+      if (count >= limit) return;
+    }
+  };
+  search();
+  return count;
+}
+
+function dig(solution: Board): Board {
+  const puzzle = solution.map((row) => [...row]);
+  const cells = shuffled(Array.from({ length: 49 }, (_, index) => [Math.floor(index / 7), index % 7] as [number, number]));
+  for (const [row, col] of cells) {
+    const clue = puzzle[row][col];
+    puzzle[row][col] = 0;
+    if (countSolutions(puzzle, 2) !== 1) puzzle[row][col] = clue;
+  }
+  return puzzle;
+}
+
+const solutionGrid = document.querySelector<HTMLDivElement>('#solution-grid')!;
+const puzzleGrid = document.querySelector<HTMLDivElement>('#puzzle-grid')!;
 const generateButton = document.querySelector<HTMLButtonElement>('#generate')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
 
-function render(board: Board): void {
+function render(grid: HTMLDivElement, board: Board, isPuzzle = false): void {
   grid.replaceChildren();
   board.forEach((row, rowIndex) => row.forEach((value, colIndex) => {
     const cell = document.createElement('div');
     cell.className = 'cell';
     if (rowIndex === 2 || rowIndex === 4) cell.classList.add('seam-row');
     if (colIndex === 2 || colIndex === 4) cell.classList.add('seam-column');
+    if (value === 0) cell.classList.add('empty');
     cell.setAttribute('role', 'gridcell');
-    cell.setAttribute('aria-label', `Row ${rowIndex + 1}, column ${colIndex + 1}: ${value}`);
-    cell.textContent = String(value);
+    cell.setAttribute('aria-label', `Row ${rowIndex + 1}, column ${colIndex + 1}: ${value || 'empty'}`);
+    cell.textContent = value ? String(value) : '';
     grid.append(cell);
   }));
 }
@@ -94,11 +128,15 @@ function render(board: Board): void {
 function makeGrid(): void {
   generateButton.disabled = true;
   generateButton.classList.add('is-working');
-  status.textContent = 'Finding a fresh arrangement…';
+  status.textContent = 'Generating a solution, then checking each clue…';
   requestAnimationFrame(() => {
     try {
-      render(generateBoard());
-      status.textContent = 'New completed grid generated.';
+      const solution = generateBoard();
+      const puzzle = dig(solution);
+      render(solutionGrid, solution);
+      render(puzzleGrid, puzzle, true);
+      const clues = puzzle.flat().filter(Boolean).length;
+      status.textContent = `Done — ${clues} clues remain, with exactly one solution.`;
     } catch {
       status.textContent = 'That one got tangled. Please try again.';
     } finally {
