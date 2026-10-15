@@ -1,4 +1,5 @@
 import './style.css';
+import { respectsSetTuples } from './set-tuples';
 
 type Board = number[][];
 
@@ -13,7 +14,7 @@ regions.forEach((row, r) => row.forEach((cellRegions, c) => cellRegions.forEach(
   const cells = regionCells.get(region) ?? []; cells.push([r, c]); regionCells.set(region, cells);
 })));
 const shuffled = <T,>(items: T[]): T[] => { const copy = [...items]; for (let i = copy.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [copy[i], copy[j]] = [copy[j], copy[i]]; } return copy; };
-function valid(board: Board, row: number, col: number, value: number): boolean { return !board[row].some((cell) => cell === value) && !board.some((line) => line[col] === value) && regions[row][col].every((region) => (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value)); }
+function valid(board: Board, row: number, col: number, value: number): boolean { return !board[row].some((cell) => cell === value) && !board.some((line) => line[col] === value) && regions[row][col].every((region) => (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value)) && respectsSetTuples(board, row, col, value); }
 function nextCell(board: Board): [number, number, number[]] | null { let best: [number, number, number[]] | null = null; for (let r = 0; r < 7; r++) for (let c = 0; c < 7; c++) if (!board[r][c]) { const options = Array.from({ length: 9 }, (_, i) => i + 1).filter((value) => valid(board, r, c, value)); if (!options.length) return [r, c, []]; if (!best || options.length < best[2].length) best = [r, c, options]; } return best; }
 function solve(board: Board): boolean { const cell = nextCell(board); if (!cell) return true; const [r, c, options] = cell; for (const value of shuffled(options)) { board[r][c] = value; if (solve(board)) return true; board[r][c] = 0; } return false; }
 function countSolutions(board: Board, limit = 2): number { let count = 0; const search = (): void => { if (count >= limit) return; const cell = nextCell(board); if (!cell) { count++; return; } const [r, c, options] = cell; for (const value of options) { board[r][c] = value; search(); board[r][c] = 0; if (count >= limit) return; } }; search(); return count; }

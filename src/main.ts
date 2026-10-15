@@ -1,5 +1,6 @@
 import './style.css';
 import { mountWalkthrough } from './walkthrough';
+import { respectsSetTuples } from './set-tuples';
 
 type Board = number[][];
 
@@ -36,7 +37,7 @@ function isValid(board: Board, row: number, col: number, value: number): boolean
   if (board.some((line) => line[col] === value)) return false;
   return regions[row][col].every((region) =>
     (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value),
-  );
+  ) && respectsSetTuples(board, row, col, value);
 }
 
 function candidates(board: Board, row: number, col: number): number[] {

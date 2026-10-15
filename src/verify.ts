@@ -1,5 +1,6 @@
 import './style.css';
 import { mountWalkthrough } from './walkthrough';
+import { respectsSetTuples } from './set-tuples';
 
 type Board = number[][];
 const regions: number[][][] = [
@@ -11,7 +12,7 @@ const regions: number[][][] = [
 const regionCells = new Map<number, Array<[number, number]>>();
 regions.forEach((row, r) => row.forEach((cellRegions, c) => cellRegions.forEach((region) => { const cells = regionCells.get(region) ?? []; cells.push([r, c]); regionCells.set(region, cells); })));
 function valid(board: Board, row: number, col: number, value: number): boolean {
-  return !board[row].some((cell) => cell === value) && !board.some((line) => line[col] === value) && regions[row][col].every((region) => (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value));
+  return !board[row].some((cell) => cell === value) && !board.some((line) => line[col] === value) && regions[row][col].every((region) => (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value)) && respectsSetTuples(board, row, col, value);
 }
 function givenBoardIsValid(board: Board): boolean {
   for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (board[row][col]) { const value = board[row][col]; board[row][col] = 0; const okay = valid(board, row, col, value); board[row][col] = value; if (!okay) return false; }

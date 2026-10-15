@@ -1,7 +1,8 @@
 import './style.css';
+import { respectsSetTuples, setTuples } from './set-tuples';
 
 export type Board = number[][];
-type MoveKind = 'Snyder notation' | 'Naked Single' | 'Naked Pair' | 'Naked Triple' | 'Naked Quadruple' | 'Brute Force';
+type MoveKind = 'Snyder notation' | 'Naked Single' | 'Set Single' | 'Naked Pair' | 'Naked Triple' | 'Naked Quadruple' | 'Brute Force';
 type Notes = number[][][];
 type Step = { board: Board; notes: Notes; givens: boolean[][]; removed: Set<string>; affected: Set<string>; placed: [number, number] | null; kind: MoveKind; description: string };
 
@@ -17,13 +18,15 @@ const units: Array<Array<[number, number]>> = [
   ...Array.from({ length: 7 }, (_, row) => Array.from({ length: 7 }, (_, col) => [row, col] as [number, number])),
   ...Array.from({ length: 7 }, (_, col) => Array.from({ length: 7 }, (_, row) => [row, col] as [number, number])),
   ...Array.from(regionCells.values()),
+  ...setTuples,
 ];
 const clone = (board: Board): Board => board.map((row) => [...row]);
-function valid(board: Board, row: number, col: number, value: number): boolean { return !board[row].some((cell) => cell === value) && !board.some((line) => line[col] === value) && regions[row][col].every((region) => (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value)); }
+function valid(board: Board, row: number, col: number, value: number): boolean { return !board[row].some((cell) => cell === value) && !board.some((line) => line[col] === value) && regions[row][col].every((region) => (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value)) && respectsSetTuples(board, row, col, value); }
 function candidates(board: Board, row: number, col: number): number[] { return Array.from({ length: 9 }, (_, index) => index + 1).filter((value) => valid(board, row, col, value)); }
 function nextCell(board: Board): [number, number, number[]] | null { let best: [number, number, number[]] | null = null; for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col]) { const options = candidates(board, row, col); if (!options.length) return [row, col, []]; if (!best || options.length < best[2].length) best = [row, col, options]; } return best; }
 function solve(board: Board): boolean { const cell = nextCell(board); if (!cell) return true; const [row, col, options] = cell; for (const value of options) { board[row][col] = value; if (solve(board)) return true; board[row][col] = 0; } return false; }
 function findNaked(board: Board, notes: Notes): [number, number, number] | null { for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col] && notes[row][col].length === 1) return [row, col, notes[row][col][0]]; return null; }
+function findSetSingle(board: Board, notes: Notes): [number, number, number] | null { for (const tuple of setTuples) for (let digit = 1; digit <= 9; digit++) { if (tuple.some(([row, col]) => board[row][col] === digit)) continue; const spots = tuple.filter(([row, col]) => !board[row][col] && notes[row][col].includes(digit)); if (spots.length === 1) return [...spots[0], digit]; } return null; }
 function position(row: number, col: number): string { return `r${row + 1}c${col + 1}`; }
 function createNotes(board: Board): Notes { return board.map((row, r) => row.map((value, c) => value ? [] : candidates(board, r, c))); }
 function cloneNotes(notes: Notes): Notes { return notes.map((row) => row.map((cell) => [...cell])); }
@@ -34,6 +37,7 @@ function affectedCells(row: number, col: number): Set<string> {
   const affected = new Set<string>();
   for (let index = 0; index < 7; index++) { affected.add(cellKey(row, index)); affected.add(cellKey(index, col)); }
   regions[row][col].forEach((region) => (regionCells.get(region) ?? []).forEach(([r, c]) => affected.add(cellKey(r, c))));
+  setTuples.filter((tuple) => tuple.some(([r, c]) => r === row && c === col)).forEach((tuple) => tuple.forEach(([r, c]) => affected.add(cellKey(r, c))));
   return affected;
 }
 function removedNotes(before: Notes, after: Notes, board: Board): Set<string> {
@@ -82,7 +86,7 @@ function solveSteps(initial: Board, target?: Board): { steps: Step[]; tally: Map
   const steps: Step[] = [{ board: clone(board), notes, givens, removed: new Set(), affected: new Set(), placed: null, kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
   const tally = new Map<MoveKind, number>(); let rating = 0;
   while (board.some((row) => row.some((value) => !value))) {
-    const naked = findNaked(board, notes); const subset = naked ? null : findNakedSubset(board, notes, 2) ?? findNakedSubset(board, notes, 3) ?? findNakedSubset(board, notes, 4);
+    const naked = findNaked(board, notes); const setSingle = naked ? null : findSetSingle(board, notes); const subset = naked || setSingle ? null : findNakedSubset(board, notes, 2) ?? findNakedSubset(board, notes, 3) ?? findNakedSubset(board, notes, 4);
     if (subset) {
       const nextNotes = cloneNotes(notes); subset.removed.forEach((key) => { const [row, col, digit] = key.split(':').map(Number); nextNotes[row][col] = nextNotes[row][col].filter((candidate) => candidate !== digit); });
       const kind: MoveKind = subset.cells.length === 2 ? 'Naked Pair' : subset.cells.length === 3 ? 'Naked Triple' : 'Naked Quadruple';
@@ -94,6 +98,7 @@ function solveSteps(initial: Board, target?: Board): { steps: Step[]; tally: Map
     }
     let row: number; let col: number; let value: number; let kind: MoveKind;
     if (naked && naked[2] === solution[naked[0]][naked[1]]) { [row, col, value] = naked; kind = 'Naked Single'; rating += 10; }
+    else if (setSingle && setSingle[2] === solution[setSingle[0]][setSingle[1]]) { [row, col, value] = setSingle; kind = 'Set Single'; rating += 20; }
     else { const cell = nextCell(board); if (!cell) return null; [row, col] = cell; value = solution[row][col]; if (!notes[row][col].includes(value)) return null; kind = 'Brute Force'; rating += 10000; }
     board[row][col] = value; tally.set(kind, (tally.get(kind) ?? 0) + 1);
     const nextNotes = reconcileNotes(notes, board); const removed = removedNotes(notes, nextNotes, board); notes = nextNotes;

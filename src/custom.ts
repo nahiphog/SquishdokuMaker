@@ -1,5 +1,6 @@
 import './style.css';
 import { mountWalkthrough } from './walkthrough';
+import { respectsSetTuples } from './set-tuples';
 
 type Board = number[][];
 const regions: number[][][] = [
@@ -14,7 +15,7 @@ regions.forEach((row, r) => row.forEach((cellRegions, c) => cellRegions.forEach(
 })));
 const shuffled = <T,>(items: T[]): T[] => { const copy = [...items]; for (let i = copy.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [copy[i], copy[j]] = [copy[j], copy[i]]; } return copy; };
 function valid(board: Board, row: number, col: number, value: number): boolean {
-  return !board[row].some((cell) => cell === value) && !board.some((line) => line[col] === value) && regions[row][col].every((region) => (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value));
+  return !board[row].some((cell) => cell === value) && !board.some((line) => line[col] === value) && regions[row][col].every((region) => (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value)) && respectsSetTuples(board, row, col, value);
 }
 function nextCell(board: Board): [number, number, number[]] | null {
   let best: [number, number, number[]] | null = null;
