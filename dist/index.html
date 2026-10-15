@@ -5,15 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f5f0e7" />
     <title>Squishdoku — 7×7 Sudoku</title>
-    <script type="module" crossorigin src="/assets/index-B28Fg5El.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CBtNZk_H.css">
+    <script type="module" crossorigin src="/assets/index-DV8tzCdc.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Bx818jh7.css">
   </head>
   <body>
     <main class="page-shell">
       <section class="intro" aria-labelledby="page-title">
-        <p class="eyebrow">A different kind of sudoku</p>
         <h1 id="page-title">Squishdoku</h1>
-        <p class="lede">A compact 7×7 number puzzle with overlapping regions. Every press creates a solved grid, then carefully digs out a uniquely solvable puzzle.</p>
         <button id="generate" type="button">
           <span class="button-mark" aria-hidden="true">✦</span>
           Generate two grids
@@ -22,11 +20,11 @@
       </section>
       <div class="boards">
         <section class="puzzle-card" aria-label="Completed Squishdoku grid">
-          <div class="card-topline"><span>Completed grid</span><span>1—9</span></div>
+          <div class="card-topline"><span>Completed grid</span><button class="copy-button" type="button" data-copy="solution">Copy grid</button></div>
           <div id="solution-grid" class="grid" role="grid" aria-label="Completed Squishdoku grid"></div>
         </section>
         <section class="puzzle-card" aria-label="Dug Squishdoku puzzle">
-          <div class="card-topline"><span>Final dug puzzle</span><span>Unique</span></div>
+          <div class="card-topline"><span>Final dug puzzle</span><button class="copy-button" type="button" data-copy="puzzle">Copy grid</button></div>
           <div id="puzzle-grid" class="grid" role="grid" aria-label="Uniquely solvable Squishdoku puzzle"></div>
           <div class="legend"><i aria-hidden="true"></i><span>Dashed lines mark the squish seams</span></div>
         </section>

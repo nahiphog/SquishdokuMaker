@@ -109,8 +109,11 @@ const solutionGrid = document.querySelector<HTMLDivElement>('#solution-grid')!;
 const puzzleGrid = document.querySelector<HTMLDivElement>('#puzzle-grid')!;
 const generateButton = document.querySelector<HTMLButtonElement>('#generate')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
+const copyButtons = document.querySelectorAll<HTMLButtonElement>('.copy-button');
+let currentSolution: Board | null = null;
+let currentPuzzle: Board | null = null;
 
-function render(grid: HTMLDivElement, board: Board, isPuzzle = false): void {
+function render(grid: HTMLDivElement, board: Board): void {
   grid.replaceChildren();
   board.forEach((row, rowIndex) => row.forEach((value, colIndex) => {
     const cell = document.createElement('div');
@@ -131,12 +134,16 @@ function makeGrid(): void {
   status.textContent = 'Generating a solution, then checking each clue…';
   requestAnimationFrame(() => {
     try {
+      const startedAt = performance.now();
       const solution = generateBoard();
       const puzzle = dig(solution);
+      const elapsed = performance.now() - startedAt;
+      currentSolution = solution;
+      currentPuzzle = puzzle;
       render(solutionGrid, solution);
-      render(puzzleGrid, puzzle, true);
+      render(puzzleGrid, puzzle);
       const clues = puzzle.flat().filter(Boolean).length;
-      status.textContent = `Done — ${clues} clues remain, with exactly one solution.`;
+      status.textContent = `Done in ${(elapsed / 1000).toFixed(2)}s — ${clues} clues remain, with exactly one solution.`;
     } catch {
       status.textContent = 'That one got tangled. Please try again.';
     } finally {
@@ -147,4 +154,17 @@ function makeGrid(): void {
 }
 
 generateButton.addEventListener('click', makeGrid);
+copyButtons.forEach((button) => button.addEventListener('click', async () => {
+  const board = button.dataset.copy === 'solution' ? currentSolution : currentPuzzle;
+  if (!board) return;
+  const text = board.flat().map((value) => value || '.').join('');
+  try {
+    await navigator.clipboard.writeText(text);
+    const originalLabel = button.textContent;
+    button.textContent = 'Copied!';
+    setTimeout(() => { button.textContent = originalLabel; }, 1300);
+  } catch {
+    status.textContent = 'Clipboard access was unavailable. Please try again.';
+  }
+}));
 makeGrid();
