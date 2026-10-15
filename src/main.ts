@@ -82,10 +82,8 @@ function render(board: Board): void {
   board.forEach((row, rowIndex) => row.forEach((value, colIndex) => {
     const cell = document.createElement('div');
     cell.className = 'cell';
-    if (rowIndex === 2) cell.classList.add('seam-bottom');
-    if (rowIndex === 4) cell.classList.add('seam-bottom');
-    if (colIndex === 2) cell.classList.add('seam-right');
-    if (colIndex === 4) cell.classList.add('seam-right');
+    if (rowIndex === 2 || rowIndex === 4) cell.classList.add('seam-row');
+    if (colIndex === 2 || colIndex === 4) cell.classList.add('seam-column');
     cell.setAttribute('role', 'gridcell');
     cell.setAttribute('aria-label', `Row ${rowIndex + 1}, column ${colIndex + 1}: ${value}`);
     cell.textContent = String(value);
