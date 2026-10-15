@@ -5,6 +5,16 @@ export type Board = number[][];
 type MoveKind = 'Snyder notation' | 'Naked Single' | 'Set Single' | 'Locked Candidates' | 'Naked Pair' | 'Naked Triple' | 'Naked Quadruple' | 'Brute Force';
 type Notes = number[][][];
 type Step = { board: Board; notes: Notes; givens: boolean[][]; removed: Set<string>; affected: Set<string>; placed: [number, number] | null; kind: MoveKind; description: string };
+const techniqueDifficulty: Record<MoveKind, number> = {
+  'Snyder notation': 0,
+  'Naked Single': 10,
+  'Set Single': 20,
+  'Locked Candidates': 40,
+  'Naked Pair': 50,
+  'Naked Triple': 60,
+  'Naked Quadruple': 70,
+  'Brute Force': 10000,
+};
 
 const regions: number[][][] = [
   [[1], [1], [1, 2], [2], [2, 3], [3], [3]], [[1], [1], [1, 2], [2], [2, 3], [3], [3]],
@@ -169,7 +179,7 @@ export function mountWalkthrough(container: HTMLElement, puzzle: Board, heading 
   ['Technique', 'Steps'].forEach((label) => { const heading = document.createElement('th'); heading.scope = 'col'; heading.textContent = label; headingRow.append(heading); });
   tableHead.append(headingRow); const tableBody = document.createElement('tbody'); const techniqueSteps = new Map<MoveKind, number[]>();
   walk.steps.forEach((step, index) => { const steps = techniqueSteps.get(step.kind) ?? []; steps.push(index); techniqueSteps.set(step.kind, steps); });
-  techniqueSteps.forEach((steps, kind) => {
+  [...techniqueSteps.entries()].sort(([left], [right]) => techniqueDifficulty[left] - techniqueDifficulty[right]).forEach(([kind, steps]) => {
     const row = document.createElement('tr'); const technique = document.createElement('td'); const details = document.createElement('td');
     technique.textContent = kind; details.textContent = steps.join(', '); row.append(technique, details); tableBody.append(row);
   });
