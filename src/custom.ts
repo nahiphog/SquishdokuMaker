@@ -80,7 +80,7 @@ function buildBatch(selected: Set<number>): void {
   for (let run = 0; run < 3 && isBuilding; run++) {
     attempts++; const solution = Array.from({ length: 7 }, () => Array<number>(7).fill(0)); solve(solution);
     const puzzle = solution.map((row, r) => row.map((value, c) => selected.has(r * 7 + c) ? value : 0));
-    if (countSolutions(puzzle, 2) === 1) { latestPuzzle = puzzle; renderPuzzle(puzzle); mountWalkthrough(walkthrough, puzzle); builtResult.hidden = false; setBuilding(false); status.textContent = `Found a unique puzzle in ${attempts} attempt${attempts === 1 ? '' : 's'}.`; return; }
+    if (countSolutions(puzzle, 2) === 1) { latestPuzzle = puzzle; renderPuzzle(puzzle); mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solution); builtResult.hidden = false; setBuilding(false); status.textContent = `Found a unique puzzle in ${attempts} attempt${attempts === 1 ? '' : 's'}.`; return; }
   }
   status.textContent = `Building… ${attempts} attempt${attempts === 1 ? '' : 's'} checked.`; window.setTimeout(() => buildBatch(selected), 0);
 }

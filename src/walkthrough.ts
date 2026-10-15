@@ -1,7 +1,7 @@
 import './style.css';
 
 export type Board = number[][];
-type MoveKind = 'Snyder notation' | 'Naked Single' | 'Hidden Single' | 'Brute Force';
+type MoveKind = 'Snyder notation' | 'Naked Single' | 'Brute Force';
 type Notes = number[][][];
 type Step = { board: Board; notes: Notes; givens: boolean[][]; removed: Set<string>; affected: Set<string>; placed: [number, number] | null; kind: MoveKind; description: string };
 
@@ -13,18 +13,12 @@ const regions: number[][][] = [
 ];
 const regionCells = new Map<number, Array<[number, number]>>();
 regions.forEach((row, r) => row.forEach((cellRegions, c) => cellRegions.forEach((region) => { const cells = regionCells.get(region) ?? []; cells.push([r, c]); regionCells.set(region, cells); })));
-const units: Array<Array<[number, number]>> = [
-  ...Array.from({ length: 7 }, (_, row) => Array.from({ length: 7 }, (_, col) => [row, col] as [number, number])),
-  ...Array.from({ length: 7 }, (_, col) => Array.from({ length: 7 }, (_, row) => [row, col] as [number, number])),
-  ...Array.from(regionCells.values()),
-];
 const clone = (board: Board): Board => board.map((row) => [...row]);
 function valid(board: Board, row: number, col: number, value: number): boolean { return !board[row].some((cell) => cell === value) && !board.some((line) => line[col] === value) && regions[row][col].every((region) => (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value)); }
 function candidates(board: Board, row: number, col: number): number[] { return Array.from({ length: 9 }, (_, index) => index + 1).filter((value) => valid(board, row, col, value)); }
 function nextCell(board: Board): [number, number, number[]] | null { let best: [number, number, number[]] | null = null; for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col]) { const options = candidates(board, row, col); if (!options.length) return [row, col, []]; if (!best || options.length < best[2].length) best = [row, col, options]; } return best; }
 function solve(board: Board): boolean { const cell = nextCell(board); if (!cell) return true; const [row, col, options] = cell; for (const value of options) { board[row][col] = value; if (solve(board)) return true; board[row][col] = 0; } return false; }
 function findNaked(board: Board): [number, number, number] | null { for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col]) { const options = candidates(board, row, col); if (options.length === 1) return [row, col, options[0]]; } return null; }
-function findHidden(board: Board): [number, number, number] | null { for (const unit of units) for (let digit = 1; digit <= 9; digit++) { const spots = unit.filter(([row, col]) => !board[row][col] && candidates(board, row, col).includes(digit)); if (spots.length === 1) return [...spots[0], digit]; } return null; }
 function position(row: number, col: number): string { return `r${row + 1}c${col + 1}`; }
 function createNotes(board: Board): Notes { return board.map((row, r) => row.map((value, c) => value ? [] : candidates(board, r, c))); }
 function noteKey(row: number, col: number, digit: number): string { return `${row}:${col}:${digit}`; }
@@ -43,23 +37,34 @@ function removedNotes(before: Notes, after: Notes, board: Board): Set<string> {
   }
   return removed;
 }
-function solveSteps(initial: Board): { steps: Step[]; tally: Map<MoveKind, number>; rating: number } | null {
-  const solution = clone(initial); if (!solve(solution)) return null;
+function completedBoardIsValid(board: Board): boolean {
+  for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) {
+    const value = board[row][col]; if (value < 1 || value > 9) return false;
+    board[row][col] = 0; const okay = valid(board, row, col, value); board[row][col] = value;
+    if (!okay) return false;
+  }
+  return true;
+}
+function matchesGivens(puzzle: Board, solution: Board): boolean { return puzzle.every((row, r) => row.every((value, c) => !value || value === solution[r][c])); }
+function boardsMatch(left: Board, right: Board): boolean { return left.every((row, r) => row.every((value, c) => value === right[r][c])); }
+function solveSteps(initial: Board, target?: Board): { steps: Step[]; tally: Map<MoveKind, number>; rating: number } | null {
+  const solution = clone(target ?? initial); if (!target && !solve(solution)) return null;
+  if (!completedBoardIsValid(solution) || !matchesGivens(initial, solution)) return null;
   const board = clone(initial); const givens = initial.map((row) => row.map(Boolean)); let notes = createNotes(board);
   const steps: Step[] = [{ board: clone(board), notes, givens, removed: new Set(), affected: new Set(), placed: null, kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
   const tally = new Map<MoveKind, number>(); let rating = 0;
   while (board.some((row) => row.some((value) => !value))) {
-    const naked = findNaked(board); const hidden = naked ? null : findHidden(board);
+    const naked = findNaked(board);
     let row: number; let col: number; let value: number; let kind: MoveKind;
-    if (naked) { [row, col, value] = naked; kind = 'Naked Single'; rating += 10; }
-    else if (hidden) { [row, col, value] = hidden; kind = 'Hidden Single'; rating += 20; }
-    else { const cell = nextCell(board); if (!cell) break; [row, col] = cell; value = solution[row][col]; kind = 'Brute Force'; rating += 10000; }
+    if (naked && naked[2] === solution[naked[0]][naked[1]]) { [row, col, value] = naked; kind = 'Naked Single'; rating += 10; }
+    else { const cell = nextCell(board); if (!cell) return null; [row, col] = cell; value = solution[row][col]; if (!candidates(board, row, col).includes(value)) return null; kind = 'Brute Force'; rating += 10000; }
     board[row][col] = value; tally.set(kind, (tally.get(kind) ?? 0) + 1);
     const nextNotes = createNotes(board); const removed = removedNotes(notes, nextNotes, board); notes = nextNotes;
     const removalNote = removed.size ? ` ${removed.size} Snyder notation${removed.size === 1 ? ' is' : 's are'} removed in red.` : '';
     const note = kind === 'Brute Force' ? `No available technique could progress; brute force places ${value} in ${position(row, col)} (+10,000).${removalNote}` : `${kind}: place ${value} in ${position(row, col)}.${removalNote}`;
     steps.push({ board: clone(board), notes, givens, removed, affected: affectedCells(row, col), placed: [row, col], kind, description: note });
   }
+  if (!boardsMatch(board, solution)) return null;
   return { steps, tally, rating };
 }
 function renderBoard(step: Step): HTMLElement {
@@ -80,9 +85,9 @@ function renderBoard(step: Step): HTMLElement {
   }));
   return grid;
 }
-export function mountWalkthrough(container: HTMLElement, puzzle: Board, heading = 'Solution walkthrough'): void {
-  const walk = solveSteps(puzzle); container.replaceChildren();
-  if (!walk) { container.textContent = 'A walkthrough is unavailable because this puzzle has no solution.'; return; }
+export function mountWalkthrough(container: HTMLElement, puzzle: Board, heading = 'Solution walkthrough', target?: Board): void {
+  const walk = solveSteps(puzzle, target); container.replaceChildren();
+  if (!walk) { container.textContent = 'A validated walkthrough is unavailable for this puzzle.'; return; }
   let current = 0; const section = document.createElement('section'); section.className = 'walkthrough';
   const title = document.createElement('h2'); title.textContent = heading; const meta = document.createElement('p'); meta.className = 'walkthrough-meta';
   const tally = [...walk.tally.entries()].map(([kind, count]) => `${count} × ${kind}`).join(' · ') || 'No placements required'; const level = walk.rating >= 10000 ? 'Brute force' : walk.rating > 100 ? 'Intermediate' : 'Beginner';

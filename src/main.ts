@@ -185,7 +185,7 @@ function makeGrid(): void {
       currentPuzzle = puzzle;
       render(solutionGrid, solution);
       render(puzzleGrid, puzzle);
-      mountWalkthrough(walkthrough, puzzle);
+      mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solution);
       const clues = puzzle.flat().filter(Boolean).length;
       const method = diggingMethod.value === 'dual' ? 'dual-cell' : 'single-cell';
       givensCount.textContent = `${clues} givens`;
