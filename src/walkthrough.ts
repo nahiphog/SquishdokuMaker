@@ -2,7 +2,7 @@ import './style.css';
 import { respectsSetTuples, setTuples } from './set-tuples';
 
 export type Board = number[][];
-type MoveKind = 'Snyder notation' | 'Naked Single' | 'Set Single' | 'Naked Pair' | 'Naked Triple' | 'Naked Quadruple' | 'Brute Force';
+type MoveKind = 'Snyder notation' | 'Naked Single' | 'Set Single' | 'Locked Candidates' | 'Naked Pair' | 'Naked Triple' | 'Naked Quadruple' | 'Brute Force';
 type Notes = number[][][];
 type Step = { board: Board; notes: Notes; givens: boolean[][]; removed: Set<string>; affected: Set<string>; placed: [number, number] | null; kind: MoveKind; description: string };
 
@@ -14,10 +14,11 @@ const regions: number[][][] = [
 ];
 const regionCells = new Map<number, Array<[number, number]>>();
 regions.forEach((row, r) => row.forEach((cellRegions, c) => cellRegions.forEach((region) => { const cells = regionCells.get(region) ?? []; cells.push([r, c]); regionCells.set(region, cells); })));
+const regionUnits = [...regionCells.values()];
 const units: Array<Array<[number, number]>> = [
   ...Array.from({ length: 7 }, (_, row) => Array.from({ length: 7 }, (_, col) => [row, col] as [number, number])),
   ...Array.from({ length: 7 }, (_, col) => Array.from({ length: 7 }, (_, row) => [row, col] as [number, number])),
-  ...Array.from(regionCells.values()),
+  ...regionUnits,
   ...setTuples,
 ];
 const clone = (board: Board): Board => board.map((row) => [...row]);
@@ -27,6 +28,23 @@ function nextCell(board: Board): [number, number, number[]] | null { let best: [
 function solve(board: Board): boolean { const cell = nextCell(board); if (!cell) return true; const [row, col, options] = cell; for (const value of options) { board[row][col] = value; if (solve(board)) return true; board[row][col] = 0; } return false; }
 function findNaked(board: Board, notes: Notes): [number, number, number] | null { for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col] && notes[row][col].length === 1) return [row, col, notes[row][col][0]]; return null; }
 function findSetSingle(board: Board, notes: Notes): [number, number, number] | null { for (const tuple of setTuples) for (let digit = 1; digit <= 9; digit++) { if (tuple.some(([row, col]) => board[row][col] === digit)) continue; const spots = tuple.filter(([row, col]) => !board[row][col] && notes[row][col].includes(digit)); if (spots.length === 1) return [...spots[0], digit]; } return null; }
+function sameCell(left: [number, number], right: [number, number]): boolean { return left[0] === right[0] && left[1] === right[1]; }
+function findLockedCandidates(board: Board, notes: Notes): { digit: number; source: Array<[number, number]>; target: Array<[number, number]>; removed: Set<string>; affected: Set<string> } | null {
+  for (const source of [...regionUnits, ...setTuples]) for (let digit = 1; digit <= 9; digit++) {
+    if (source.some(([row, col]) => board[row][col] === digit)) continue;
+    const spots = source.filter(([row, col]) => !board[row][col] && notes[row][col].includes(digit));
+    if (!spots.length) continue;
+    for (const target of units) {
+      if (target === source) continue;
+      const intersection = target.filter((cell) => source.some((sourceCell) => sameCell(sourceCell, cell)));
+      if (!intersection.length || !spots.every((spot) => intersection.some((cell) => sameCell(cell, spot)))) continue;
+      const removed = new Set<string>();
+      target.filter((cell) => !source.some((sourceCell) => sameCell(sourceCell, cell))).forEach(([row, col]) => { if (!board[row][col] && notes[row][col].includes(digit)) removed.add(noteKey(row, col, digit)); });
+      if (removed.size) return { digit, source, target, removed, affected: new Set([...source, ...target].map(([row, col]) => cellKey(row, col))) };
+    }
+  }
+  return null;
+}
 function position(row: number, col: number): string { return `r${row + 1}c${col + 1}`; }
 function createNotes(board: Board): Notes { return board.map((row, r) => row.map((value, c) => value ? [] : candidates(board, r, c))); }
 function cloneNotes(notes: Notes): Notes { return notes.map((row) => row.map((cell) => [...cell])); }
@@ -79,6 +97,7 @@ function completedBoardIsValid(board: Board): boolean {
 }
 function matchesGivens(puzzle: Board, solution: Board): boolean { return puzzle.every((row, r) => row.every((value, c) => !value || value === solution[r][c])); }
 function boardsMatch(left: Board, right: Board): boolean { return left.every((row, r) => row.every((value, c) => value === right[r][c])); }
+function removalsMatchSolution(removed: Set<string>, solution: Board): boolean { return [...removed].every((key) => { const [row, col, digit] = key.split(':').map(Number); return solution[row][col] !== digit; }); }
 function solveSteps(initial: Board, target?: Board): { steps: Step[]; tally: Map<MoveKind, number>; rating: number } | null {
   const solution = clone(target ?? initial); if (!target && !solve(solution)) return null;
   if (!completedBoardIsValid(solution) || !matchesGivens(initial, solution)) return null;
@@ -86,8 +105,16 @@ function solveSteps(initial: Board, target?: Board): { steps: Step[]; tally: Map
   const steps: Step[] = [{ board: clone(board), notes, givens, removed: new Set(), affected: new Set(), placed: null, kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
   const tally = new Map<MoveKind, number>(); let rating = 0;
   while (board.some((row) => row.some((value) => !value))) {
-    const naked = findNaked(board, notes); const setSingle = naked ? null : findSetSingle(board, notes); const subset = naked || setSingle ? null : findNakedSubset(board, notes, 2) ?? findNakedSubset(board, notes, 3) ?? findNakedSubset(board, notes, 4);
+    const naked = findNaked(board, notes); const setSingle = naked ? null : findSetSingle(board, notes); const locked = naked || setSingle ? null : findLockedCandidates(board, notes); const subset = naked || setSingle || locked ? null : findNakedSubset(board, notes, 2) ?? findNakedSubset(board, notes, 3) ?? findNakedSubset(board, notes, 4);
+    if (locked) {
+      if (!removalsMatchSolution(locked.removed, solution)) return null;
+      const nextNotes = cloneNotes(notes); locked.removed.forEach((key) => { const [row, col, digit] = key.split(':').map(Number); nextNotes[row][col] = nextNotes[row][col].filter((candidate) => candidate !== digit); });
+      notes = nextNotes; tally.set('Locked Candidates', (tally.get('Locked Candidates') ?? 0) + 1);
+      steps.push({ board: clone(board), notes, givens, removed: locked.removed, affected: locked.affected, placed: null, kind: 'Locked Candidates', description: `Locked Candidates: ${locked.digit} is confined to the overlap of a complete region/set; ${locked.removed.size} Snyder notation${locked.removed.size === 1 ? ' is' : 's are'} removed in red.` });
+      continue;
+    }
     if (subset) {
+      if (!removalsMatchSolution(subset.removed, solution)) return null;
       const nextNotes = cloneNotes(notes); subset.removed.forEach((key) => { const [row, col, digit] = key.split(':').map(Number); nextNotes[row][col] = nextNotes[row][col].filter((candidate) => candidate !== digit); });
       const kind: MoveKind = subset.cells.length === 2 ? 'Naked Pair' : subset.cells.length === 3 ? 'Naked Triple' : 'Naked Quadruple';
       notes = nextNotes; tally.set(kind, (tally.get(kind) ?? 0) + 1);
