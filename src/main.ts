@@ -95,7 +95,7 @@ function countSolutions(board: Board, limit = 2): number {
   return count;
 }
 
-function dig(solution: Board): Board {
+function digSingle(solution: Board): Board {
   const puzzle = solution.map((row) => [...row]);
   const cells = shuffled(Array.from({ length: 49 }, (_, index) => [Math.floor(index / 7), index % 7] as [number, number]));
   for (const [row, col] of cells) {
@@ -106,9 +106,26 @@ function dig(solution: Board): Board {
   return puzzle;
 }
 
+function digDual(solution: Board): Board {
+  const puzzle = solution.map((row) => [...row]);
+  const visited = new Set<string>();
+  const cells = shuffled(Array.from({ length: 49 }, (_, index) => [Math.floor(index / 7), index % 7] as [number, number]));
+  for (const [row, col] of cells) {
+    const pairedRow = 6 - row; const pairedCol = 6 - col;
+    const key = [[row, col], [pairedRow, pairedCol]].map(([r, c]) => `${r}:${c}`).sort().join('|');
+    if (visited.has(key) || (row === pairedRow && col === pairedCol)) continue;
+    visited.add(key);
+    const first = puzzle[row][col]; const second = puzzle[pairedRow][pairedCol];
+    puzzle[row][col] = 0; puzzle[pairedRow][pairedCol] = 0;
+    if (countSolutions(puzzle, 2) !== 1) { puzzle[row][col] = first; puzzle[pairedRow][pairedCol] = second; }
+  }
+  return puzzle;
+}
+
 const solutionGrid = document.querySelector<HTMLDivElement>('#solution-grid')!;
 const puzzleGrid = document.querySelector<HTMLDivElement>('#puzzle-grid')!;
 const generateButton = document.querySelector<HTMLButtonElement>('#generate')!;
+const diggingMethod = document.querySelector<HTMLSelectElement>('#digging-method')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
 const walkthrough = document.querySelector<HTMLElement>('#generate-walkthrough')!;
 const exportButtons = document.querySelectorAll<HTMLButtonElement>('[data-export]');
@@ -161,7 +178,7 @@ function makeGrid(): void {
     try {
       const startedAt = performance.now();
       const solution = generateBoard();
-      const puzzle = dig(solution);
+      const puzzle = diggingMethod.value === 'dual' ? digDual(solution) : digSingle(solution);
       const elapsed = performance.now() - startedAt;
       currentSolution = solution;
       currentPuzzle = puzzle;
@@ -169,7 +186,8 @@ function makeGrid(): void {
       render(puzzleGrid, puzzle);
       mountWalkthrough(walkthrough, puzzle);
       const clues = puzzle.flat().filter(Boolean).length;
-      status.textContent = `Done in ${(elapsed / 1000).toFixed(2)}s — ${clues} clues remain, with exactly one solution.`;
+      const method = diggingMethod.value === 'dual' ? 'dual-cell' : 'single-cell';
+      status.textContent = `Done in ${(elapsed / 1000).toFixed(2)}s — ${clues} clues remain after ${method} digging, with exactly one solution.`;
     } catch {
       status.textContent = 'That one got tangled. Please try again.';
     } finally {
