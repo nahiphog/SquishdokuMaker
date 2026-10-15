@@ -29,6 +29,7 @@ function countSolutions(board: Board, limit = 2): number { let count = 0; const 
 
 const grid = document.querySelector<HTMLDivElement>('#custom-grid')!;
 const buildButton = document.querySelector<HTMLButtonElement>('#build-toggle')!;
+const clearButton = document.querySelector<HTMLButtonElement>('#clear-highlights')!;
 const status = document.querySelector<HTMLParagraphElement>('#build-status')!;
 const cells: HTMLDivElement[] = [];
 let isBuilding = false;
@@ -58,4 +59,9 @@ buildButton.addEventListener('click', () => {
   const selected = new Set(cells.flatMap((cell, index) => cell.classList.contains('highlighted') ? [index] : []));
   if (!selected.size) { status.textContent = 'Highlight at least one cell before building.'; return; }
   isBuilding = true; attempts = 0; buildButton.textContent = 'Stop building'; status.textContent = 'Building…'; buildBatch(selected);
+});
+clearButton.addEventListener('click', () => {
+  if (isBuilding) return;
+  cells.forEach((cell) => { cell.classList.remove('highlighted'); cell.setAttribute('aria-pressed', 'false'); cell.textContent = ''; });
+  status.textContent = 'All highlights removed.';
 });
