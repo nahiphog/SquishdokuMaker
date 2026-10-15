@@ -9,6 +9,7 @@ export default defineConfig({
         customBuild: resolve(__dirname, 'custom-build/index.html'),
         verify: resolve(__dirname, 'verify/index.html'),
         simulation: resolve(__dirname, 'simulation/index.html'),
+        techniques: resolve(__dirname, 'techniques/index.html'),
       },
     },
   },
