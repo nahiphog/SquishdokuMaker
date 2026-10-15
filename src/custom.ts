@@ -67,7 +67,7 @@ function renderPuzzle(puzzle: Board): void {
   puzzle.forEach((row, r) => row.forEach((value, c) => {
     const cell = document.createElement('div'); cell.className = 'cell';
     if (r === 2 || r === 4) cell.classList.add('seam-row'); if (c === 2 || c === 4) cell.classList.add('seam-column');
-    if (!value) cell.classList.add('empty'); cell.textContent = value ? String(value) : '';
+    if (!value) cell.classList.add('empty'); else cell.classList.add('given-cell'); cell.textContent = value ? String(value) : '';
     cell.setAttribute('role', 'gridcell'); cell.setAttribute('aria-label', `Row ${r + 1}, column ${c + 1}: ${value || 'empty'}`); builtGrid.append(cell);
   }));
 }

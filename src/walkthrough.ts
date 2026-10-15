@@ -156,6 +156,7 @@ function renderBoard(step: Step): HTMLElement {
     const cell = document.createElement('div'); cell.className = 'cell'; if (r === 2 || r === 4) cell.classList.add('seam-row'); if (c === 2 || c === 4) cell.classList.add('seam-column');
     if (step.affected.has(cellKey(r, c))) cell.classList.add('affected-cell');
     if (step.placed?.[0] === r && step.placed?.[1] === c) cell.classList.add('placed-cell');
+    if (value && step.givens[r][c]) cell.classList.add('given-cell');
     if (value && !step.givens[r][c]) cell.classList.add('solved-cell');
     if (!value) {
       cell.classList.add('snyder-cell');

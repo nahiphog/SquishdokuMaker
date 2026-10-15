@@ -134,7 +134,7 @@ const exportButtons = document.querySelectorAll<HTMLButtonElement>('[data-export
 let currentSolution: Board | null = null;
 let currentPuzzle: Board | null = null;
 
-function render(grid: HTMLDivElement, board: Board): void {
+function render(grid: HTMLDivElement, board: Board, givens?: Board): void {
   grid.replaceChildren();
   board.forEach((row, rowIndex) => row.forEach((value, colIndex) => {
     const cell = document.createElement('div');
@@ -142,6 +142,8 @@ function render(grid: HTMLDivElement, board: Board): void {
     if (rowIndex === 2 || rowIndex === 4) cell.classList.add('seam-row');
     if (colIndex === 2 || colIndex === 4) cell.classList.add('seam-column');
     if (value === 0) cell.classList.add('empty');
+    else if (givens?.[rowIndex][colIndex]) cell.classList.add('given-cell');
+    else if (givens) cell.classList.add('solved-cell');
     cell.setAttribute('role', 'gridcell');
     cell.setAttribute('aria-label', `Row ${rowIndex + 1}, column ${colIndex + 1}: ${value || 'empty'}`);
     cell.textContent = value ? String(value) : '';
@@ -149,7 +151,7 @@ function render(grid: HTMLDivElement, board: Board): void {
   }));
 }
 
-function downloadGridImage(board: Board, filename: string): void {
+function downloadGridImage(board: Board, filename: string, givens?: Board): void {
   const canvas = document.createElement('canvas');
   canvas.width = 700; canvas.height = 700;
   const context = canvas.getContext('2d')!;
@@ -167,8 +169,8 @@ function downloadGridImage(board: Board, filename: string): void {
     context.beginPath(); context.moveTo(inset + position * cell, inset); context.lineTo(inset + position * cell, inset + gridSize); context.stroke();
     context.beginPath(); context.moveTo(inset, inset + position * cell); context.lineTo(inset + gridSize, inset + position * cell); context.stroke();
   });
-  context.setLineDash([]); context.fillStyle = '#263d58'; context.font = '600 52px Georgia'; context.textAlign = 'center'; context.textBaseline = 'middle';
-  board.forEach((row, r) => row.forEach((value, c) => { if (value) context.fillText(String(value), inset + (c + .5) * cell, inset + (r + .5) * cell); }));
+  context.setLineDash([]); context.font = '600 52px Georgia'; context.textAlign = 'center'; context.textBaseline = 'middle';
+  board.forEach((row, r) => row.forEach((value, c) => { if (value) { context.fillStyle = givens && !givens[r][c] ? '#1769aa' : '#111111'; context.fillText(String(value), inset + (c + .5) * cell, inset + (r + .5) * cell); } }));
   const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = filename; link.click();
 }
 
@@ -184,8 +186,8 @@ function makeGrid(): void {
       const elapsed = performance.now() - startedAt;
       currentSolution = solution;
       currentPuzzle = puzzle;
-      render(solutionGrid, solution);
-      render(puzzleGrid, puzzle);
+      render(solutionGrid, solution, puzzle);
+      render(puzzleGrid, puzzle, puzzle);
       mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solution);
       const clues = puzzle.flat().filter(Boolean).length;
       const method = diggingMethod.value === 'dual' ? 'dual-cell' : 'single-cell';
@@ -205,7 +207,7 @@ exportButtons.forEach((button) => button.addEventListener('click', async () => {
   const board = button.dataset.export === 'solution' ? currentSolution : currentPuzzle;
   if (!board) return;
   if (button.dataset.format === 'image') {
-    downloadGridImage(board, `squishdoku-${button.dataset.export}.png`);
+    downloadGridImage(board, `squishdoku-${button.dataset.export}.png`, button.dataset.export === 'solution' ? currentPuzzle ?? undefined : board);
   } else {
     const text = board.flat().map((value) => value || '.').join('');
     try { await navigator.clipboard.writeText(text); status.textContent = 'Grid copied to clipboard.'; }
