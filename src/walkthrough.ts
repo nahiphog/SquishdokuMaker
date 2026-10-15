@@ -86,6 +86,15 @@ export function mountWalkthrough(container: HTMLElement, puzzle: Board, heading 
   const title = document.createElement('h2'); title.textContent = heading; const meta = document.createElement('p'); meta.className = 'walkthrough-meta';
   const tally = [...walk.tally.entries()].map(([kind, count]) => `${count} × ${kind}`).join(' · ') || 'No placements required'; const level = walk.rating >= 10000 ? 'Brute force' : walk.rating > 100 ? 'Intermediate' : 'Beginner';
   meta.textContent = `Difficulty: ${level} · Rating: ${walk.rating} · ${tally}`;
+  const stepTable = document.createElement('table'); stepTable.className = 'walkthrough-steps';
+  const tableHead = document.createElement('thead'); const headingRow = document.createElement('tr');
+  ['Technique', 'Steps'].forEach((label) => { const heading = document.createElement('th'); heading.scope = 'col'; heading.textContent = label; headingRow.append(heading); });
+  tableHead.append(headingRow); const tableBody = document.createElement('tbody');
+  walk.steps.forEach((step, index) => {
+    const row = document.createElement('tr'); const technique = document.createElement('td'); const details = document.createElement('td');
+    technique.textContent = step.kind; details.textContent = `${index}. ${step.description}`; row.append(technique, details); tableBody.append(row);
+  });
+  stepTable.append(tableHead, tableBody);
   const board = document.createElement('div'); const description = document.createElement('p'); description.className = 'walkthrough-description';
   const slider = document.createElement('input'); slider.type = 'range'; slider.min = '0'; slider.max = String(walk.steps.length - 1); slider.value = '0'; slider.setAttribute('aria-label', 'Walkthrough step');
   const counter = document.createElement('span'); counter.className = 'step-counter';
@@ -94,5 +103,5 @@ export function mountWalkthrough(container: HTMLElement, puzzle: Board, heading 
   const render = (): void => { board.replaceChildren(renderBoard(walk.steps[current])); description.textContent = walk.steps[current].description; slider.value = String(current); counter.textContent = `Step ${current} of ${walk.steps.length - 1}`; };
   actions.forEach(([label, getStep]) => { const button = document.createElement('button'); button.className = 'walk-button'; button.type = 'button'; button.textContent = label; button.addEventListener('click', () => { current = getStep(); render(); }); controls.append(button); });
   slider.addEventListener('input', () => { current = Number(slider.value); render(); });
-  section.append(title, meta, board, description, slider, controls, counter); container.append(section); render();
+  section.append(title, meta, stepTable, board, description, slider, controls, counter); container.append(section); render();
 }
