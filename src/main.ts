@@ -1,4 +1,5 @@
 import './style.css';
+import { mountWalkthrough } from './walkthrough';
 
 type Board = number[][];
 
@@ -109,6 +110,7 @@ const solutionGrid = document.querySelector<HTMLDivElement>('#solution-grid')!;
 const puzzleGrid = document.querySelector<HTMLDivElement>('#puzzle-grid')!;
 const generateButton = document.querySelector<HTMLButtonElement>('#generate')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
+const walkthrough = document.querySelector<HTMLElement>('#generate-walkthrough')!;
 const exportButtons = document.querySelectorAll<HTMLButtonElement>('[data-export]');
 let currentSolution: Board | null = null;
 let currentPuzzle: Board | null = null;
@@ -165,6 +167,7 @@ function makeGrid(): void {
       currentPuzzle = puzzle;
       render(solutionGrid, solution);
       render(puzzleGrid, puzzle);
+      mountWalkthrough(walkthrough, puzzle);
       const clues = puzzle.flat().filter(Boolean).length;
       status.textContent = `Done in ${(elapsed / 1000).toFixed(2)}s — ${clues} clues remain, with exactly one solution.`;
     } catch {

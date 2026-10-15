@@ -1,4 +1,5 @@
 import './style.css';
+import { mountWalkthrough } from './walkthrough';
 
 type Board = number[][];
 const regions: number[][][] = [
@@ -37,6 +38,7 @@ const copyButton = document.querySelector<HTMLButtonElement>('#copy-built')!;
 const imageButton = document.querySelector<HTMLButtonElement>('#image-built')!;
 const status = document.querySelector<HTMLParagraphElement>('#build-status')!;
 const filledCount = document.querySelector<HTMLSpanElement>('#filled-count')!;
+const walkthrough = document.querySelector<HTMLElement>('#custom-walkthrough')!;
 const cells: HTMLDivElement[] = [];
 let isBuilding = false;
 let attempts = 0;
@@ -78,7 +80,7 @@ function buildBatch(selected: Set<number>): void {
   for (let run = 0; run < 3 && isBuilding; run++) {
     attempts++; const solution = Array.from({ length: 7 }, () => Array<number>(7).fill(0)); solve(solution);
     const puzzle = solution.map((row, r) => row.map((value, c) => selected.has(r * 7 + c) ? value : 0));
-    if (countSolutions(puzzle, 2) === 1) { latestPuzzle = puzzle; renderPuzzle(puzzle); builtResult.hidden = false; setBuilding(false); status.textContent = `Found a unique puzzle in ${attempts} attempt${attempts === 1 ? '' : 's'}.`; return; }
+    if (countSolutions(puzzle, 2) === 1) { latestPuzzle = puzzle; renderPuzzle(puzzle); mountWalkthrough(walkthrough, puzzle); builtResult.hidden = false; setBuilding(false); status.textContent = `Found a unique puzzle in ${attempts} attempt${attempts === 1 ? '' : 's'}.`; return; }
   }
   status.textContent = `Building… ${attempts} attempt${attempts === 1 ? '' : 's'} checked.`; window.setTimeout(() => buildBatch(selected), 0);
 }
@@ -91,7 +93,7 @@ haltButton.addEventListener('click', stopBuilding);
 clearButton.addEventListener('click', () => {
   if (isBuilding) return;
   cells.forEach((cell) => { cell.classList.remove('highlighted'); cell.setAttribute('aria-pressed', 'false'); });
-  latestPuzzle = null; builtResult.hidden = true; updateFilledCount();
+  latestPuzzle = null; walkthrough.replaceChildren(); builtResult.hidden = true; updateFilledCount();
   status.textContent = 'All highlights removed.';
 });
 copyButton.addEventListener('click', async () => {

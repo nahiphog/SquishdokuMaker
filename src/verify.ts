@@ -1,4 +1,5 @@
 import './style.css';
+import { mountWalkthrough } from './walkthrough';
 
 type Board = number[][];
 const regions: number[][][] = [
@@ -72,8 +73,8 @@ verifyButton.addEventListener('click', () => {
     const solutions = findSolutions(puzzle);
     verifyButton.disabled = false;
     if (!solutions.length) { status.textContent = 'This puzzle has no solution.'; return; }
-    if (solutions.length === 1) { status.textContent = 'This puzzle has exactly one solution.'; results.append(card('Completed grid', solutions[0])); return; }
+    if (solutions.length === 1) { status.textContent = 'This puzzle has exactly one solution.'; const uniqueCard = card('Completed grid', solutions[0]); const walkthrough = document.createElement('div'); walkthrough.className = 'walkthrough-host'; uniqueCard.append(walkthrough); mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough'); results.append(uniqueCard); return; }
     status.textContent = 'This puzzle does not have a unique solution. Two solutions are shown.';
-    results.append(card('Solution 1', solutions[0], solutions[1]), card('Solution 2', solutions[1], solutions[0]));
+    const first = card('Solution 1', solutions[0], solutions[1]); const walkthrough = document.createElement('div'); walkthrough.className = 'walkthrough-host'; first.append(walkthrough); mountWalkthrough(walkthrough, puzzle, 'Walkthrough for solution 1'); results.append(first, card('Solution 2', solutions[1], solutions[0]));
   });
 });
