@@ -72,7 +72,7 @@ function buildBatch(selected: Set<number>): void {
 }
 buildButton.addEventListener('click', () => {
   const selected = new Set(cells.flatMap((cell, index) => cell.classList.contains('highlighted') ? [index] : []));
-  if (!selected.size) { status.textContent = 'Highlight at least one cell before building.'; return; }
+  if (selected.size < 8) { status.textContent = 'Highlight at least 8 cells before building.'; return; }
   setBuilding(true); attempts = 0; status.textContent = 'Building…'; buildBatch(selected);
 });
 haltButton.addEventListener('click', stopBuilding);
