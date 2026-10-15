@@ -136,6 +136,9 @@ function solveSteps(initial: Board, target?: Board): { steps: Step[]; tally: Map
   if (!boardsMatch(board, solution)) return null;
   return { steps, tally, rating };
 }
+export function getWalkthroughRating(puzzle: Board, solution?: Board): number | null {
+  return solveSteps(puzzle, solution)?.rating ?? null;
+}
 function renderBoard(step: Step): HTMLElement {
   const grid = document.createElement('div'); grid.className = 'grid walkthrough-grid';
   const notes = step.notes;

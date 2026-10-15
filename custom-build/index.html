@@ -13,6 +13,27 @@
         <div class="card-topline"><span>Choose clues</span><span id="filled-count">0 cells filled</span></div>
         <div id="custom-grid" class="grid custom-grid" role="grid" aria-label="Empty Squishdoku grid; select cells to highlight them"></div>
         <p id="highlighted-cells" class="selected-cells" aria-live="polite">Highlighted cells: none</p>
+        <div class="difficulty-constraint" aria-label="Difficulty rating constraint">
+          <label>Difficulty rating from
+            <select id="difficulty-min">
+              <option value="0">0</option>
+              <option value="500">500</option>
+              <option value="800">800</option>
+              <option value="1000">1000</option>
+              <option value="2000">2000</option>
+            </select>
+          </label>
+          <span>to</span>
+          <label>
+            <select id="difficulty-max" aria-label="Maximum difficulty rating">
+              <option value="500">500</option>
+              <option value="1000">1000</option>
+              <option value="2000">2000</option>
+              <option value="10000">10000</option>
+              <option value="100000" selected>100000</option>
+            </select>
+          </label>
+        </div>
         <div class="build-controls">
           <button id="build-now" type="button">Build now</button>
           <button id="halt-build" class="secondary-button" type="button" disabled>Halt build</button>

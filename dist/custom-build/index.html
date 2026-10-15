@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f5f0e7" />
     <title>Custom build — Squishdoku</title>
-    <script type="module" crossorigin src="/assets/customBuild-QF1RwdHH.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/style-CjgKiPyO.js">
+    <script type="module" crossorigin src="/assets/customBuild-CGJvJLx7.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/style-76r2GSNt.js">
     <link rel="modulepreload" crossorigin href="/assets/set-tuples-5A_3z-hD.js">
-    <link rel="modulepreload" crossorigin href="/assets/walkthrough-B-HnFSBZ.js">
-    <link rel="stylesheet" crossorigin href="/assets/style-CAGE-aWs.css">
+    <link rel="modulepreload" crossorigin href="/assets/walkthrough-CMeMEd1d.js">
+    <link rel="stylesheet" crossorigin href="/assets/style-CuL2pkyi.css">
   </head>
   <body>
     <nav class="site-nav" aria-label="Main navigation"><a href="/">Generate</a><a class="active" href="/custom-build/">Custom build</a><a href="/verify/">Verify</a><a href="/simulation/">Simulation</a><a href="/techniques/">Techniques</a></nav>
@@ -18,6 +18,27 @@
         <div class="card-topline"><span>Choose clues</span><span id="filled-count">0 cells filled</span></div>
         <div id="custom-grid" class="grid custom-grid" role="grid" aria-label="Empty Squishdoku grid; select cells to highlight them"></div>
         <p id="highlighted-cells" class="selected-cells" aria-live="polite">Highlighted cells: none</p>
+        <div class="difficulty-constraint" aria-label="Difficulty rating constraint">
+          <label>Difficulty rating from
+            <select id="difficulty-min">
+              <option value="0">0</option>
+              <option value="500">500</option>
+              <option value="800">800</option>
+              <option value="1000">1000</option>
+              <option value="2000">2000</option>
+            </select>
+          </label>
+          <span>to</span>
+          <label>
+            <select id="difficulty-max" aria-label="Maximum difficulty rating">
+              <option value="500">500</option>
+              <option value="1000">1000</option>
+              <option value="2000">2000</option>
+              <option value="10000">10000</option>
+              <option value="100000" selected>100000</option>
+            </select>
+          </label>
+        </div>
         <div class="build-controls">
           <button id="build-now" type="button">Build now</button>
           <button id="halt-build" class="secondary-button" type="button" disabled>Halt build</button>

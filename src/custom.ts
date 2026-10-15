@@ -1,5 +1,5 @@
 import './style.css';
-import { mountWalkthrough } from './walkthrough';
+import { getWalkthroughRating, mountWalkthrough } from './walkthrough';
 import { respectsSetTuples } from './set-tuples';
 
 type Board = number[][];
@@ -40,6 +40,8 @@ const imageButton = document.querySelector<HTMLButtonElement>('#image-built')!;
 const status = document.querySelector<HTMLParagraphElement>('#build-status')!;
 const filledCount = document.querySelector<HTMLSpanElement>('#filled-count')!;
 const highlightedCells = document.querySelector<HTMLParagraphElement>('#highlighted-cells')!;
+const difficultyMin = document.querySelector<HTMLSelectElement>('#difficulty-min')!;
+const difficultyMax = document.querySelector<HTMLSelectElement>('#difficulty-max')!;
 const walkthrough = document.querySelector<HTMLElement>('#custom-walkthrough')!;
 const cells: HTMLDivElement[] = [];
 let isBuilding = false;
@@ -87,14 +89,22 @@ function buildBatch(selected: Set<number>): void {
   for (let run = 0; run < 3 && isBuilding; run++) {
     attempts++; const solution = Array.from({ length: 7 }, () => Array<number>(7).fill(0)); solve(solution);
     const puzzle = solution.map((row, r) => row.map((value, c) => selected.has(r * 7 + c) ? value : 0));
-    if (countSolutions(puzzle, 2) === 1) { latestPuzzle = puzzle; renderPuzzle(puzzle); mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solution); builtResult.hidden = false; setBuilding(false); status.textContent = `Found a unique puzzle in ${attempts} attempt${attempts === 1 ? '' : 's'}.`; return; }
+    if (countSolutions(puzzle, 2) === 1) {
+      const rating = getWalkthroughRating(puzzle, solution);
+      const minimum = Number(difficultyMin.value); const maximum = Number(difficultyMax.value);
+      if (rating !== null && rating >= minimum && rating <= maximum) {
+        latestPuzzle = puzzle; renderPuzzle(puzzle); mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solution); builtResult.hidden = false; setBuilding(false);
+        status.textContent = `Found a unique puzzle rated ${rating} in ${attempts} attempt${attempts === 1 ? '' : 's'}.`; return;
+      }
+    }
   }
   status.textContent = `Building… ${attempts} attempt${attempts === 1 ? '' : 's'} checked.`; window.setTimeout(() => buildBatch(selected), 0);
 }
 buildButton.addEventListener('click', () => {
   const selected = new Set(cells.flatMap((cell, index) => cell.classList.contains('highlighted') ? [index] : []));
   if (selected.size < 8) { status.textContent = 'Highlight at least 8 cells before building.'; return; }
-  setBuilding(true); attempts = 0; status.textContent = 'Building…'; buildBatch(selected);
+  if (Number(difficultyMin.value) > Number(difficultyMax.value)) { status.textContent = 'Choose a minimum rating that is no higher than the maximum.'; return; }
+  setBuilding(true); attempts = 0; status.textContent = `Building… seeking a rating from ${difficultyMin.value} to ${difficultyMax.value}.`; buildBatch(selected);
 });
 haltButton.addEventListener('click', stopBuilding);
 clearButton.addEventListener('click', () => {
