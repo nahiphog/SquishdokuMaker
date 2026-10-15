@@ -3,7 +3,7 @@ import './style.css';
 export type Board = number[][];
 type MoveKind = 'Snyder notation' | 'Naked Single' | 'Hidden Single' | 'Brute Force';
 type Notes = number[][][];
-type Step = { board: Board; notes: Notes; removed: Set<string>; affected: Set<string>; placed: [number, number] | null; kind: MoveKind; description: string };
+type Step = { board: Board; notes: Notes; givens: boolean[][]; removed: Set<string>; affected: Set<string>; placed: [number, number] | null; kind: MoveKind; description: string };
 
 const regions: number[][][] = [
   [[1], [1], [1, 2], [2], [2, 3], [3], [3]], [[1], [1], [1, 2], [2], [2, 3], [3], [3]],
@@ -45,8 +45,8 @@ function removedNotes(before: Notes, after: Notes, board: Board): Set<string> {
 }
 function solveSteps(initial: Board): { steps: Step[]; tally: Map<MoveKind, number>; rating: number } | null {
   const solution = clone(initial); if (!solve(solution)) return null;
-  const board = clone(initial); let notes = createNotes(board);
-  const steps: Step[] = [{ board: clone(board), notes, removed: new Set(), affected: new Set(), placed: null, kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
+  const board = clone(initial); const givens = initial.map((row) => row.map(Boolean)); let notes = createNotes(board);
+  const steps: Step[] = [{ board: clone(board), notes, givens, removed: new Set(), affected: new Set(), placed: null, kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
   const tally = new Map<MoveKind, number>(); let rating = 0;
   while (board.some((row) => row.some((value) => !value))) {
     const naked = findNaked(board); const hidden = naked ? null : findHidden(board);
@@ -58,7 +58,7 @@ function solveSteps(initial: Board): { steps: Step[]; tally: Map<MoveKind, numbe
     const nextNotes = createNotes(board); const removed = removedNotes(notes, nextNotes, board); notes = nextNotes;
     const removalNote = removed.size ? ` ${removed.size} Snyder notation${removed.size === 1 ? ' is' : 's are'} removed in red.` : '';
     const note = kind === 'Brute Force' ? `No available technique could progress; brute force places ${value} in ${position(row, col)} (+10,000).${removalNote}` : `${kind}: place ${value} in ${position(row, col)}.${removalNote}`;
-    steps.push({ board: clone(board), notes, removed, affected: affectedCells(row, col), placed: [row, col], kind, description: note });
+    steps.push({ board: clone(board), notes, givens, removed, affected: affectedCells(row, col), placed: [row, col], kind, description: note });
   }
   return { steps, tally, rating };
 }
@@ -69,6 +69,7 @@ function renderBoard(step: Step): HTMLElement {
     const cell = document.createElement('div'); cell.className = 'cell'; if (r === 2 || r === 4) cell.classList.add('seam-row'); if (c === 2 || c === 4) cell.classList.add('seam-column');
     if (step.affected.has(cellKey(r, c))) cell.classList.add('affected-cell');
     if (step.placed?.[0] === r && step.placed?.[1] === c) cell.classList.add('placed-cell');
+    if (value && !step.givens[r][c]) cell.classList.add('solved-cell');
     if (!value) {
       cell.classList.add('snyder-cell');
       const digits = new Set([...notes[r][c], ...Array.from(step.removed).filter((key) => key.startsWith(`${r}:${c}:`)).map((key) => Number(key.split(':')[2]))]);
