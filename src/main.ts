@@ -109,7 +109,7 @@ const solutionGrid = document.querySelector<HTMLDivElement>('#solution-grid')!;
 const puzzleGrid = document.querySelector<HTMLDivElement>('#puzzle-grid')!;
 const generateButton = document.querySelector<HTMLButtonElement>('#generate')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
-const copyButtons = document.querySelectorAll<HTMLButtonElement>('.copy-button');
+const exportButtons = document.querySelectorAll<HTMLButtonElement>('[data-export]');
 let currentSolution: Board | null = null;
 let currentPuzzle: Board | null = null;
 
@@ -126,6 +126,29 @@ function render(grid: HTMLDivElement, board: Board): void {
     cell.textContent = value ? String(value) : '';
     grid.append(cell);
   }));
+}
+
+function downloadGridImage(board: Board, filename: string): void {
+  const canvas = document.createElement('canvas');
+  canvas.width = 700; canvas.height = 700;
+  const context = canvas.getContext('2d')!;
+  const inset = 14; const cell = 96; const gridSize = cell * 7;
+  context.fillStyle = '#fffdf8'; context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = '#fffdf8'; context.fillRect(inset, inset, gridSize, gridSize);
+  context.strokeStyle = '#263d58'; context.lineWidth = 1;
+  for (let index = 1; index < 7; index++) {
+    context.beginPath(); context.moveTo(inset + index * cell, inset); context.lineTo(inset + index * cell, inset + gridSize); context.stroke();
+    context.beginPath(); context.moveTo(inset, inset + index * cell); context.lineTo(inset + gridSize, inset + index * cell); context.stroke();
+  }
+  context.lineWidth = 4; context.strokeRect(inset, inset, gridSize, gridSize);
+  context.strokeStyle = '#d96445'; context.lineWidth = 1; context.setLineDash([4, 4]);
+  [2.5, 4.5].forEach((position) => {
+    context.beginPath(); context.moveTo(inset + position * cell, inset); context.lineTo(inset + position * cell, inset + gridSize); context.stroke();
+    context.beginPath(); context.moveTo(inset, inset + position * cell); context.lineTo(inset + gridSize, inset + position * cell); context.stroke();
+  });
+  context.setLineDash([]); context.fillStyle = '#263d58'; context.font = '600 52px Georgia'; context.textAlign = 'center'; context.textBaseline = 'middle';
+  board.forEach((row, r) => row.forEach((value, c) => { if (value) context.fillText(String(value), inset + (c + .5) * cell, inset + (r + .5) * cell); }));
+  const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = filename; link.click();
 }
 
 function makeGrid(): void {
@@ -154,17 +177,16 @@ function makeGrid(): void {
 }
 
 generateButton.addEventListener('click', makeGrid);
-copyButtons.forEach((button) => button.addEventListener('click', async () => {
-  const board = button.dataset.copy === 'solution' ? currentSolution : currentPuzzle;
+exportButtons.forEach((button) => button.addEventListener('click', async () => {
+  const board = button.dataset.export === 'solution' ? currentSolution : currentPuzzle;
   if (!board) return;
-  const text = board.flat().map((value) => value || '.').join('');
-  try {
-    await navigator.clipboard.writeText(text);
-    const originalLabel = button.textContent;
-    button.textContent = 'Copied!';
-    setTimeout(() => { button.textContent = originalLabel; }, 1300);
-  } catch {
-    status.textContent = 'Clipboard access was unavailable. Please try again.';
+  if (button.dataset.format === 'image') {
+    downloadGridImage(board, `squishdoku-${button.dataset.export}.png`);
+  } else {
+    const text = board.flat().map((value) => value || '.').join('');
+    try { await navigator.clipboard.writeText(text); status.textContent = 'Grid copied to clipboard.'; }
+    catch { status.textContent = 'Clipboard access was unavailable. Please try again.'; }
   }
+  button.closest('details')?.removeAttribute('open');
 }));
 makeGrid();

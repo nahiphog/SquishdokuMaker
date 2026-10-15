@@ -7,6 +7,7 @@ export default defineConfig({
       input: {
         generate: resolve(__dirname, 'index.html'),
         customBuild: resolve(__dirname, 'custom-build/index.html'),
+        simulation: resolve(__dirname, 'simulation/index.html'),
       },
     },
   },
