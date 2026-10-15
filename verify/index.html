@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f0e7" />
+    <title>Verify — Squishdoku</title>
+  </head>
+  <body>
+    <nav class="site-nav" aria-label="Main navigation"><a href="/">Generate</a><a href="/custom-build/">Custom build</a><a class="active" href="/verify/">Verify</a><a href="/simulation/">Simulation</a></nav>
+    <main class="verify-shell">
+      <section class="verify-inputs" aria-labelledby="verify-title">
+        <h1 id="verify-title">Verify</h1>
+        <label class="string-input">49-character string
+          <input id="puzzle-string" inputmode="text" maxlength="49" spellcheck="false" placeholder="Use 1–9 and . for blanks" aria-describedby="string-help" />
+        </label>
+        <p id="string-help" class="input-help">Or fill the grid below. The string takes priority when supplied.</p>
+        <div id="entry-grid" class="grid entry-grid" role="grid" aria-label="Enter a Squishdoku puzzle"></div>
+        <button id="verify-puzzle" type="button">Verify puzzle</button>
+        <p id="verify-status" class="status" aria-live="polite">Enter a puzzle to check its solutions.</p>
+      </section>
+      <section id="verify-results" class="verify-results" aria-live="polite"></section>
+    </main>
+    <script type="module" src="/src/verify.ts"></script>
+  </body>
+</html>
