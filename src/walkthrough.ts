@@ -90,10 +90,11 @@ export function mountWalkthrough(container: HTMLElement, puzzle: Board, heading 
   const stepTable = document.createElement('table'); stepTable.className = 'walkthrough-steps';
   const tableHead = document.createElement('thead'); const headingRow = document.createElement('tr');
   ['Technique', 'Steps'].forEach((label) => { const heading = document.createElement('th'); heading.scope = 'col'; heading.textContent = label; headingRow.append(heading); });
-  tableHead.append(headingRow); const tableBody = document.createElement('tbody');
-  walk.steps.forEach((step, index) => {
+  tableHead.append(headingRow); const tableBody = document.createElement('tbody'); const techniqueSteps = new Map<MoveKind, number[]>();
+  walk.steps.forEach((step, index) => { const steps = techniqueSteps.get(step.kind) ?? []; steps.push(index); techniqueSteps.set(step.kind, steps); });
+  techniqueSteps.forEach((steps, kind) => {
     const row = document.createElement('tr'); const technique = document.createElement('td'); const details = document.createElement('td');
-    technique.textContent = step.kind; details.textContent = `${index}. ${step.description}`; row.append(technique, details); tableBody.append(row);
+    technique.textContent = kind; details.textContent = steps.join(', '); row.append(technique, details); tableBody.append(row);
   });
   stepTable.append(tableHead, tableBody);
   const board = document.createElement('div'); const description = document.createElement('p'); description.className = 'walkthrough-description';
