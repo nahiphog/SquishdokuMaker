@@ -1,7 +1,7 @@
 import './style.css';
 
 export type Board = number[][];
-type MoveKind = 'Snyder notation' | 'Naked Single' | 'Naked Pair' | 'Brute Force';
+type MoveKind = 'Snyder notation' | 'Naked Single' | 'Naked Pair' | 'Naked Triple' | 'Naked Quadruple' | 'Brute Force';
 type Notes = number[][][];
 type Step = { board: Board; notes: Notes; givens: boolean[][]; removed: Set<string>; affected: Set<string>; placed: [number, number] | null; kind: MoveKind; description: string };
 
@@ -44,18 +44,23 @@ function removedNotes(before: Notes, after: Notes, board: Board): Set<string> {
   }
   return removed;
 }
-function findNakedPair(board: Board, notes: Notes): { pair: Array<[number, number]>; digits: number[]; removed: Set<string>; affected: Set<string> } | null {
+function combinations<T>(items: T[], size: number): T[][] {
+  if (size === 0) return [[]]; if (items.length < size) return [];
+  const [head, ...tail] = items; return [...combinations(tail, size - 1).map((set) => [head, ...set]), ...combinations(tail, size)];
+}
+function findNakedSubset(board: Board, notes: Notes, size: 2 | 3 | 4): { cells: Array<[number, number]>; digits: number[]; removed: Set<string>; affected: Set<string> } | null {
   for (const unit of units) {
-    const pairs = new Map<string, Array<[number, number]>>();
-    for (const [row, col] of unit) if (!board[row][col] && notes[row][col].length === 2) {
-      const key = [...notes[row][col]].sort((left, right) => left - right).join(','); const cells = pairs.get(key) ?? []; cells.push([row, col]); pairs.set(key, cells);
-    }
-    for (const [key, pair] of pairs) if (pair.length === 2) {
-      const digits = key.split(',').map(Number); const removed = new Set<string>(); const affected = new Set(unit.map(([row, col]) => cellKey(row, col)));
-      for (const [row, col] of unit) if (!pair.some(([pairRow, pairCol]) => pairRow === row && pairCol === col)) {
+    const eligible = unit.filter(([row, col]) => !board[row][col] && notes[row][col].length >= 2 && notes[row][col].length <= size);
+    for (const cells of combinations(eligible, size)) {
+      const digits = [...new Set(cells.flatMap(([row, col]) => notes[row][col]))].sort((left, right) => left - right);
+      if (digits.length !== size) continue;
+      const matchingCells = unit.filter(([row, col]) => !board[row][col] && notes[row][col].length > 0 && notes[row][col].every((digit) => digits.includes(digit)));
+      if (matchingCells.length !== size) continue;
+      const removed = new Set<string>(); const affected = new Set(unit.map(([row, col]) => cellKey(row, col)));
+      for (const [row, col] of unit) if (!cells.some(([subsetRow, subsetCol]) => subsetRow === row && subsetCol === col)) {
         digits.forEach((digit) => { if (notes[row][col].includes(digit)) removed.add(noteKey(row, col, digit)); });
       }
-      if (removed.size) return { pair, digits, removed, affected };
+      if (removed.size) return { cells, digits, removed, affected };
     }
   }
   return null;
@@ -77,13 +82,14 @@ function solveSteps(initial: Board, target?: Board): { steps: Step[]; tally: Map
   const steps: Step[] = [{ board: clone(board), notes, givens, removed: new Set(), affected: new Set(), placed: null, kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
   const tally = new Map<MoveKind, number>(); let rating = 0;
   while (board.some((row) => row.some((value) => !value))) {
-    const naked = findNaked(board, notes); const pair = naked ? null : findNakedPair(board, notes);
-    if (pair) {
-      const nextNotes = cloneNotes(notes); pair.removed.forEach((key) => { const [row, col, digit] = key.split(':').map(Number); nextNotes[row][col] = nextNotes[row][col].filter((candidate) => candidate !== digit); });
-      notes = nextNotes; tally.set('Naked Pair', (tally.get('Naked Pair') ?? 0) + 1);
-      const pairCells = pair.pair.map(([row, col]) => position(row, col)).join(' and ');
-      const digits = pair.digits.join('/');
-      steps.push({ board: clone(board), notes, givens, removed: pair.removed, affected: pair.affected, placed: null, kind: 'Naked Pair', description: `Naked Pair: ${digits} is locked in ${pairCells}; ${pair.removed.size} Snyder notation${pair.removed.size === 1 ? ' is' : 's are'} removed in red.` });
+    const naked = findNaked(board, notes); const subset = naked ? null : findNakedSubset(board, notes, 2) ?? findNakedSubset(board, notes, 3) ?? findNakedSubset(board, notes, 4);
+    if (subset) {
+      const nextNotes = cloneNotes(notes); subset.removed.forEach((key) => { const [row, col, digit] = key.split(':').map(Number); nextNotes[row][col] = nextNotes[row][col].filter((candidate) => candidate !== digit); });
+      const kind: MoveKind = subset.cells.length === 2 ? 'Naked Pair' : subset.cells.length === 3 ? 'Naked Triple' : 'Naked Quadruple';
+      notes = nextNotes; tally.set(kind, (tally.get(kind) ?? 0) + 1);
+      const subsetCells = subset.cells.map(([row, col]) => position(row, col)).join(', ');
+      const digits = subset.digits.join('/');
+      steps.push({ board: clone(board), notes, givens, removed: subset.removed, affected: subset.affected, placed: null, kind, description: `${kind}: ${digits} is locked in ${subsetCells}; ${subset.removed.size} Snyder notation${subset.removed.size === 1 ? ' is' : 's are'} removed in red.` });
       continue;
     }
     let row: number; let col: number; let value: number; let kind: MoveKind;
