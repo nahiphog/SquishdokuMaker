@@ -28,40 +28,62 @@ function solve(board: Board): boolean { const cell = nextCell(board); if (!cell)
 function countSolutions(board: Board, limit = 2): number { let count = 0; const search = (): void => { if (count >= limit) return; const cell = nextCell(board); if (!cell) { count++; return; } const [row, col, candidates] = cell; for (const value of candidates) { board[row][col] = value; search(); board[row][col] = 0; if (count >= limit) return; } }; search(); return count; }
 
 const grid = document.querySelector<HTMLDivElement>('#custom-grid')!;
-const buildButton = document.querySelector<HTMLButtonElement>('#build-toggle')!;
+const builtGrid = document.querySelector<HTMLDivElement>('#built-grid')!;
+const builtResult = document.querySelector<HTMLElement>('#built-result')!;
+const buildButton = document.querySelector<HTMLButtonElement>('#build-now')!;
+const haltButton = document.querySelector<HTMLButtonElement>('#halt-build')!;
 const clearButton = document.querySelector<HTMLButtonElement>('#clear-highlights')!;
+const copyButton = document.querySelector<HTMLButtonElement>('#copy-built')!;
 const status = document.querySelector<HTMLParagraphElement>('#build-status')!;
+const filledCount = document.querySelector<HTMLSpanElement>('#filled-count')!;
 const cells: HTMLDivElement[] = [];
 let isBuilding = false;
 let attempts = 0;
+let latestPuzzle: Board | null = null;
 
 for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) {
   const cell = document.createElement('div'); cell.className = 'cell custom-cell';
   if (row === 2 || row === 4) cell.classList.add('seam-row'); if (col === 2 || col === 4) cell.classList.add('seam-column');
   cell.setAttribute('role', 'button'); cell.setAttribute('tabindex', '0'); cell.setAttribute('aria-pressed', 'false'); cell.setAttribute('aria-label', `Row ${row + 1}, column ${col + 1}`);
-  const toggle = (): void => { if (isBuilding) return; const selected = cell.classList.toggle('highlighted'); cell.setAttribute('aria-pressed', String(selected)); cell.textContent = ''; };
+  const toggle = (): void => { if (isBuilding) return; const selected = cell.classList.toggle('highlighted'); cell.setAttribute('aria-pressed', String(selected)); updateFilledCount(); };
   cell.addEventListener('click', toggle); cell.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(); } });
   cells.push(cell); grid.append(cell);
 }
-function showPuzzle(solution: Board, selected: Set<number>): void { cells.forEach((cell, index) => { cell.textContent = selected.has(index) ? String(solution[Math.floor(index / 7)][index % 7]) : ''; }); }
-function stopBuilding(): void { isBuilding = false; buildButton.textContent = 'Build now'; status.textContent = `Stopped after ${attempts} attempt${attempts === 1 ? '' : 's'}.`; }
+function updateFilledCount(): void { const count = cells.filter((cell) => cell.classList.contains('highlighted')).length; filledCount.textContent = `${count} cell${count === 1 ? '' : 's'} filled`; }
+function renderPuzzle(puzzle: Board): void {
+  builtGrid.replaceChildren();
+  puzzle.forEach((row, r) => row.forEach((value, c) => {
+    const cell = document.createElement('div'); cell.className = 'cell';
+    if (r === 2 || r === 4) cell.classList.add('seam-row'); if (c === 2 || c === 4) cell.classList.add('seam-column');
+    if (!value) cell.classList.add('empty'); cell.textContent = value ? String(value) : '';
+    cell.setAttribute('role', 'gridcell'); cell.setAttribute('aria-label', `Row ${r + 1}, column ${c + 1}: ${value || 'empty'}`); builtGrid.append(cell);
+  }));
+}
+function setBuilding(building: boolean): void { isBuilding = building; buildButton.disabled = building; haltButton.disabled = !building; clearButton.disabled = building; }
+function stopBuilding(): void { setBuilding(false); status.textContent = `Stopped after ${attempts} attempt${attempts === 1 ? '' : 's'}.`; }
 function buildBatch(selected: Set<number>): void {
   if (!isBuilding) return;
   for (let run = 0; run < 3 && isBuilding; run++) {
     attempts++; const solution = Array.from({ length: 7 }, () => Array<number>(7).fill(0)); solve(solution);
     const puzzle = solution.map((row, r) => row.map((value, c) => selected.has(r * 7 + c) ? value : 0));
-    if (countSolutions(puzzle, 2) === 1) { showPuzzle(solution, selected); isBuilding = false; buildButton.textContent = 'Build now'; status.textContent = `Found a unique puzzle in ${attempts} attempt${attempts === 1 ? '' : 's'}.`; return; }
+    if (countSolutions(puzzle, 2) === 1) { latestPuzzle = puzzle; renderPuzzle(puzzle); builtResult.hidden = false; setBuilding(false); status.textContent = `Found a unique puzzle in ${attempts} attempt${attempts === 1 ? '' : 's'}.`; return; }
   }
   status.textContent = `Building… ${attempts} attempt${attempts === 1 ? '' : 's'} checked.`; window.setTimeout(() => buildBatch(selected), 0);
 }
 buildButton.addEventListener('click', () => {
-  if (isBuilding) { stopBuilding(); return; }
   const selected = new Set(cells.flatMap((cell, index) => cell.classList.contains('highlighted') ? [index] : []));
   if (!selected.size) { status.textContent = 'Highlight at least one cell before building.'; return; }
-  isBuilding = true; attempts = 0; buildButton.textContent = 'Stop building'; status.textContent = 'Building…'; buildBatch(selected);
+  setBuilding(true); attempts = 0; status.textContent = 'Building…'; buildBatch(selected);
 });
+haltButton.addEventListener('click', stopBuilding);
 clearButton.addEventListener('click', () => {
   if (isBuilding) return;
-  cells.forEach((cell) => { cell.classList.remove('highlighted'); cell.setAttribute('aria-pressed', 'false'); cell.textContent = ''; });
+  cells.forEach((cell) => { cell.classList.remove('highlighted'); cell.setAttribute('aria-pressed', 'false'); });
+  latestPuzzle = null; builtResult.hidden = true; updateFilledCount();
   status.textContent = 'All highlights removed.';
+});
+copyButton.addEventListener('click', async () => {
+  if (!latestPuzzle) return;
+  try { await navigator.clipboard.writeText(latestPuzzle.flat().map((value) => value || '.').join('')); copyButton.textContent = 'Copied!'; window.setTimeout(() => { copyButton.textContent = 'Copy grid'; }, 1300); }
+  catch { status.textContent = 'Clipboard access was unavailable. Please try again.'; }
 });

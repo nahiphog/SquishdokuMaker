@@ -11,14 +11,20 @@
     <main class="custom-shell">
       <section class="custom-intro" aria-labelledby="custom-title">
         <h1 id="custom-title">Custom build</h1>
-        <p>Select any cells to highlight them.</p>
-        <button id="build-toggle" type="button">Build now</button>
-        <button id="clear-highlights" class="secondary-button" type="button">Remove highlights</button>
-        <p id="build-status" class="status" aria-live="polite">Choose the clues, then build.</p>
       </section>
       <section class="puzzle-card custom-card" aria-label="Custom Squishdoku grid">
-        <div class="card-topline"><span>Empty grid</span><span>7×7</span></div>
+        <div class="card-topline"><span>Choose clues</span><span id="filled-count">0 cells filled</span></div>
         <div id="custom-grid" class="grid custom-grid" role="grid" aria-label="Empty Squishdoku grid; select cells to highlight them"></div>
+        <div class="build-controls">
+          <button id="build-now" type="button">Build now</button>
+          <button id="halt-build" class="secondary-button" type="button" disabled>Halt build</button>
+          <button id="clear-highlights" class="copy-button" type="button">Remove highlights</button>
+        </div>
+        <p id="build-status" class="status" aria-live="polite">Choose the clues, then build.</p>
+        <section id="built-result" class="built-result" hidden aria-label="Built Squishdoku puzzle">
+          <div class="card-topline"><span>Built puzzle</span><button id="copy-built" class="copy-button" type="button">Copy grid</button></div>
+          <div id="built-grid" class="grid" role="grid" aria-label="Built Squishdoku puzzle"></div>
+        </section>
         <div class="legend"><i aria-hidden="true"></i><span>Dashed lines mark the squish seams</span></div>
       </section>
     </main>
