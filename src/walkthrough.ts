@@ -2,7 +2,8 @@ import './style.css';
 
 export type Board = number[][];
 type MoveKind = 'Snyder notation' | 'Naked Single' | 'Hidden Single' | 'Brute Force';
-type Step = { board: Board; kind: MoveKind; description: string };
+type Notes = number[][][];
+type Step = { board: Board; notes: Notes; removed: Set<string>; kind: MoveKind; description: string };
 
 const regions: number[][][] = [
   [[1], [1], [1, 2], [2], [2, 3], [3], [3]], [[1], [1], [1, 2], [2], [2, 3], [3], [3]],
@@ -25,10 +26,20 @@ function solve(board: Board): boolean { const cell = nextCell(board); if (!cell)
 function findNaked(board: Board): [number, number, number] | null { for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col]) { const options = candidates(board, row, col); if (options.length === 1) return [row, col, options[0]]; } return null; }
 function findHidden(board: Board): [number, number, number] | null { for (const unit of units) for (let digit = 1; digit <= 9; digit++) { const spots = unit.filter(([row, col]) => !board[row][col] && candidates(board, row, col).includes(digit)); if (spots.length === 1) return [...spots[0], digit]; } return null; }
 function position(row: number, col: number): string { return `r${row + 1}c${col + 1}`; }
+function createNotes(board: Board): Notes { return board.map((row, r) => row.map((value, c) => value ? [] : candidates(board, r, c))); }
+function noteKey(row: number, col: number, digit: number): string { return `${row}:${col}:${digit}`; }
+function removedNotes(before: Notes, after: Notes, board: Board): Set<string> {
+  const removed = new Set<string>();
+  for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) {
+    if (board[row][col]) continue;
+    before[row][col].forEach((digit) => { if (!after[row][col].includes(digit)) removed.add(noteKey(row, col, digit)); });
+  }
+  return removed;
+}
 function solveSteps(initial: Board): { steps: Step[]; tally: Map<MoveKind, number>; rating: number } | null {
   const solution = clone(initial); if (!solve(solution)) return null;
-  const board = clone(initial); const notes = board.map((row, r) => row.map((value, c) => value ? [] : candidates(board, r, c)));
-  const steps: Step[] = [{ board: clone(board), kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
+  const board = clone(initial); let notes = createNotes(board);
+  const steps: Step[] = [{ board: clone(board), notes, removed: new Set(), kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
   const tally = new Map<MoveKind, number>(); let rating = 0;
   while (board.some((row) => row.some((value) => !value))) {
     const naked = findNaked(board); const hidden = naked ? null : findHidden(board);
@@ -37,18 +48,23 @@ function solveSteps(initial: Board): { steps: Step[]; tally: Map<MoveKind, numbe
     else if (hidden) { [row, col, value] = hidden; kind = 'Hidden Single'; rating += 20; }
     else { const cell = nextCell(board); if (!cell) break; [row, col] = cell; value = solution[row][col]; kind = 'Brute Force'; rating += 10000; }
     board[row][col] = value; tally.set(kind, (tally.get(kind) ?? 0) + 1);
-    const note = kind === 'Brute Force' ? `No available technique could progress; brute force places ${value} in ${position(row, col)} (+10,000).` : `${kind}: place ${value} in ${position(row, col)}.`;
-    steps.push({ board: clone(board), kind, description: note });
+    const nextNotes = createNotes(board); const removed = removedNotes(notes, nextNotes, board); notes = nextNotes;
+    const removalNote = removed.size ? ` ${removed.size} Snyder notation${removed.size === 1 ? ' is' : 's are'} removed in red.` : '';
+    const note = kind === 'Brute Force' ? `No available technique could progress; brute force places ${value} in ${position(row, col)} (+10,000).${removalNote}` : `${kind}: place ${value} in ${position(row, col)}.${removalNote}`;
+    steps.push({ board: clone(board), notes, removed, kind, description: note });
   }
-  (steps[0] as Step & { notes?: number[][][] }).notes = notes;
   return { steps, tally, rating };
 }
 function renderBoard(step: Step): HTMLElement {
   const grid = document.createElement('div'); grid.className = 'grid walkthrough-grid';
-  const notes = (step as Step & { notes?: number[][][] }).notes;
+  const notes = step.notes;
   step.board.forEach((row, r) => row.forEach((value, c) => {
     const cell = document.createElement('div'); cell.className = 'cell'; if (r === 2 || r === 4) cell.classList.add('seam-row'); if (c === 2 || c === 4) cell.classList.add('seam-column');
-    if (notes && !value) { cell.classList.add('snyder-cell'); notes[r][c].forEach((digit) => { const mark = document.createElement('span'); mark.textContent = String(digit); mark.style.gridArea = `${Math.ceil(digit / 3)} / ${((digit - 1) % 3) + 1}`; cell.append(mark); }); }
+    if (!value) {
+      cell.classList.add('snyder-cell');
+      const digits = new Set([...notes[r][c], ...Array.from(step.removed).filter((key) => key.startsWith(`${r}:${c}:`)).map((key) => Number(key.split(':')[2]))]);
+      digits.forEach((digit) => { const mark = document.createElement('span'); mark.textContent = String(digit); mark.style.gridArea = `${Math.ceil(digit / 3)} / ${((digit - 1) % 3) + 1}`; if (step.removed.has(noteKey(r, c, digit))) mark.classList.add('removed-snyder'); cell.append(mark); });
+    }
     else cell.textContent = value ? String(value) : '';
     grid.append(cell);
   }));

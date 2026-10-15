@@ -126,6 +126,7 @@ const solutionGrid = document.querySelector<HTMLDivElement>('#solution-grid')!;
 const puzzleGrid = document.querySelector<HTMLDivElement>('#puzzle-grid')!;
 const generateButton = document.querySelector<HTMLButtonElement>('#generate')!;
 const diggingMethod = document.querySelector<HTMLSelectElement>('#digging-method')!;
+const givensCount = document.querySelector<HTMLParagraphElement>('#givens-count')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
 const walkthrough = document.querySelector<HTMLElement>('#generate-walkthrough')!;
 const exportButtons = document.querySelectorAll<HTMLButtonElement>('[data-export]');
@@ -187,7 +188,8 @@ function makeGrid(): void {
       mountWalkthrough(walkthrough, puzzle);
       const clues = puzzle.flat().filter(Boolean).length;
       const method = diggingMethod.value === 'dual' ? 'dual-cell' : 'single-cell';
-      status.textContent = `Done in ${(elapsed / 1000).toFixed(2)}s — ${clues} clues remain after ${method} digging, with exactly one solution.`;
+      givensCount.textContent = `${clues} givens`;
+      status.textContent = `Done in ${(elapsed / 1000).toFixed(2)}s — ${method} digging, with exactly one solution.`;
     } catch {
       status.textContent = 'That one got tangled. Please try again.';
     } finally {
