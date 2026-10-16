@@ -42,6 +42,7 @@ const filledCount = document.querySelector<HTMLSpanElement>('#filled-count')!;
 const highlightedCells = document.querySelector<HTMLParagraphElement>('#highlighted-cells')!;
 const difficultyMin = document.querySelector<HTMLSelectElement>('#difficulty-min')!;
 const difficultyMax = document.querySelector<HTMLSelectElement>('#difficulty-max')!;
+const builtRating = document.querySelector<HTMLParagraphElement>('#built-rating')!;
 const walkthrough = document.querySelector<HTMLElement>('#custom-walkthrough')!;
 const cells: HTMLDivElement[] = [];
 let isBuilding = false;
@@ -93,7 +94,7 @@ function buildBatch(selected: Set<number>): void {
       const rating = getWalkthroughRating(puzzle, solution);
       const minimum = Number(difficultyMin.value); const maximum = Number(difficultyMax.value);
       if (rating !== null && rating >= minimum && rating <= maximum) {
-        latestPuzzle = puzzle; renderPuzzle(puzzle); mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solution); builtResult.hidden = false; setBuilding(false);
+        latestPuzzle = puzzle; renderPuzzle(puzzle); builtRating.textContent = `Difficulty rating: ${rating}`; mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solution); builtResult.hidden = false; setBuilding(false);
         status.textContent = `Found a unique puzzle rated ${rating} in ${attempts} attempt${attempts === 1 ? '' : 's'}.`; return;
       }
     }

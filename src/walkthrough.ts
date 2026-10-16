@@ -182,8 +182,8 @@ export function mountWalkthrough(container: HTMLElement, puzzle: Board, heading 
     const setLogicInput = document.createElement('input'); setLogicInput.type = 'checkbox'; setLogicInput.checked = useSetLogic; const setLogicText = document.createElement('span'); setLogicText.textContent = 'Use Set logic'; setLogicControl.append(setLogicInput, setLogicText);
     setLogicInput.addEventListener('change', () => { useSetLogic = setLogicInput.checked; renderWalkthrough(); });
     const meta = document.createElement('p'); meta.className = 'walkthrough-meta';
-    const tally = [...walk.tally.entries()].map(([kind, count]) => `${count} × ${kind}`).join(' · ') || 'No placements required'; const level = walk.rating >= 10000 ? 'Brute force' : walk.rating > 100 ? 'Intermediate' : 'Beginner';
-    meta.textContent = `Set logic: ${useSetLogic ? 'enabled' : 'disabled'} · Difficulty: ${level} · Rating: ${walk.rating} · ${tally}`;
+    const level = walk.rating >= 10000 ? 'Brute force' : walk.rating > 100 ? 'Intermediate' : 'Beginner';
+    meta.textContent = `Set logic: ${useSetLogic ? 'enabled' : 'disabled'} · Difficulty: ${level} · Rating: ${walk.rating}`;
     const stepTable = document.createElement('table'); stepTable.className = 'walkthrough-steps';
     const tableHead = document.createElement('thead'); const headingRow = document.createElement('tr');
     ['Technique', 'Steps'].forEach((label) => { const heading = document.createElement('th'); heading.scope = 'col'; heading.textContent = label; headingRow.append(heading); });
