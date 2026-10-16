@@ -10,6 +10,7 @@ export default defineConfig({
         customBuild: resolve(__dirname, 'custom-build/index.html'),
         verify: resolve(__dirname, 'verify/index.html'),
         simulation: resolve(__dirname, 'simulation/index.html'),
+        simulationPattern: resolve(__dirname, 'simulation-pattern/index.html'),
         techniques: resolve(__dirname, 'techniques/index.html'),
       },
     },
