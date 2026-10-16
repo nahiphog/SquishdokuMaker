@@ -93,8 +93,8 @@ verifyButton.addEventListener('click', () => {
     verifyButton.disabled = false;
     if (!solutions.length) { status.textContent = 'This puzzle has no solution.'; return; }
     const finalCard = card('Final grid', puzzle, puzzle, undefined, 'Puzzle');
-    if (solutions.length === 1) { status.textContent = 'This puzzle has exactly one solution.'; const uniqueCard = card('Completed grid', solutions[0], puzzle); const walkthrough = document.createElement('div'); walkthrough.className = 'walkthrough-host'; uniqueCard.append(walkthrough); results.append(finalCard, uniqueCard); mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solutions[0]); return; }
+    if (solutions.length === 1) { status.textContent = 'This puzzle has exactly one solution.'; const uniqueCard = card('Completed grid', solutions[0], puzzle); const walkthrough = document.createElement('div'); walkthrough.className = 'walkthrough-host'; results.append(finalCard, uniqueCard, walkthrough); mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solutions[0]); return; }
     status.textContent = 'This puzzle does not have a unique solution. Two solutions are shown.';
-    const first = card('Solution 1', solutions[0], puzzle, solutions[1]); const walkthrough = document.createElement('div'); walkthrough.className = 'walkthrough-host'; first.append(walkthrough); results.append(finalCard, first, card('Solution 2', solutions[1], puzzle, solutions[0])); mountWalkthrough(walkthrough, puzzle, 'Walkthrough for solution 1', solutions[0]);
+    const first = card('Solution 1', solutions[0], puzzle, solutions[1]); const walkthrough = document.createElement('div'); walkthrough.className = 'walkthrough-host'; results.append(finalCard, first, card('Solution 2', solutions[1], puzzle, solutions[0]), walkthrough); mountWalkthrough(walkthrough, puzzle, 'Walkthrough for solution 1', solutions[0]);
   });
 });
