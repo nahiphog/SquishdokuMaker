@@ -4,7 +4,8 @@ import { respectsSetTuples, setTuples } from './set-tuples';
 export type Board = number[][];
 type MoveKind = 'Snyder notation' | 'Naked Single' | 'House Single' | 'Locked Candidates' | 'Naked Pair' | 'Naked Triple' | 'Naked Quadruple' | 'Brute Force';
 type Notes = number[][][];
-type Step = { board: Board; notes: Notes; givens: boolean[][]; removed: Set<string>; affected: Set<string>; placed: [number, number] | null; kind: MoveKind; description: string };
+type Step = { board: Board; notes: Notes; givens: boolean[][]; removed: Set<string>; affected: Set<string>; placed: [number, number] | null; house?: Set<string>; kind: MoveKind; description: string };
+type HouseSingle = { row: number; col: number; value: number; house: Array<[number, number]> };
 const techniqueDifficulty: Record<MoveKind, number> = {
   'Snyder notation': 0,
   'Naked Single': 10,
@@ -37,7 +38,7 @@ function candidates(board: Board, row: number, col: number, useSetLogic = true):
 function nextCell(board: Board, useSetLogic = true): [number, number, number[]] | null { let best: [number, number, number[]] | null = null; for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col]) { const options = candidates(board, row, col, useSetLogic); if (!options.length) return [row, col, []]; if (!best || options.length < best[2].length) best = [row, col, options]; } return best; }
 function solve(board: Board, useSetLogic = true): boolean { const cell = nextCell(board, useSetLogic); if (!cell) return true; const [row, col, options] = cell; for (const value of options) { board[row][col] = value; if (solve(board, useSetLogic)) return true; board[row][col] = 0; } return false; }
 function findNaked(board: Board, notes: Notes): [number, number, number] | null { for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col] && notes[row][col].length === 1) return [row, col, notes[row][col][0]]; return null; }
-function findHouseSingle(board: Board, notes: Notes): [number, number, number] | null { for (const tuple of setTuples) for (let digit = 1; digit <= 9; digit++) { if (tuple.some(([row, col]) => board[row][col] === digit)) continue; const spots = tuple.filter(([row, col]) => !board[row][col] && notes[row][col].includes(digit)); if (spots.length === 1) return [...spots[0], digit]; } return null; }
+function findHouseSingle(board: Board, notes: Notes): HouseSingle | null { for (const tuple of setTuples) for (let digit = 1; digit <= 9; digit++) { if (tuple.some(([row, col]) => board[row][col] === digit)) continue; const spots = tuple.filter(([row, col]) => !board[row][col] && notes[row][col].includes(digit)); if (spots.length === 1) return { row: spots[0][0], col: spots[0][1], value: digit, house: tuple }; } return null; }
 function sameCell(left: [number, number], right: [number, number]): boolean { return left[0] === right[0] && left[1] === right[1]; }
 function findLockedCandidates(board: Board, notes: Notes, useSetLogic: boolean): { digit: number; source: Array<[number, number]>; target: Array<[number, number]>; removed: Set<string>; affected: Set<string> } | null {
   for (const source of useSetLogic ? [...regionUnits, ...setTuples] : regionUnits) for (let digit = 1; digit <= 9; digit++) {
@@ -134,14 +135,16 @@ function solveSteps(initial: Board, target?: Board, useSetLogic = true): { steps
       continue;
     }
     let row: number; let col: number; let value: number; let kind: MoveKind;
-    if (houseSingle && houseSingle[2] === solution[houseSingle[0]][houseSingle[1]]) { [row, col, value] = houseSingle; kind = 'House Single'; rating += 20; }
+    if (houseSingle && houseSingle.value === solution[houseSingle.row][houseSingle.col]) { ({ row, col, value } = houseSingle); kind = 'House Single'; rating += 20; }
     else if (naked && naked[2] === solution[naked[0]][naked[1]]) { [row, col, value] = naked; kind = 'Naked Single'; rating += 10; }
     else { const cell = nextCell(board, useSetLogic); if (!cell) return null; [row, col] = cell; value = solution[row][col]; if (!notes[row][col].includes(value)) return null; kind = 'Brute Force'; rating += 10000; }
     board[row][col] = value; tally.set(kind, (tally.get(kind) ?? 0) + 1);
     const nextNotes = reconcileNotes(notes, board, useSetLogic); const removed = removedNotes(notes, nextNotes, board); notes = nextNotes;
     const removalNote = removed.size ? ` ${removed.size} Snyder notation${removed.size === 1 ? ' is' : 's are'} removed in red.` : '';
     const note = kind === 'Brute Force' ? `No available technique could progress; brute force places ${value} in ${position(row, col)} (+10,000).${removalNote}` : `${kind}: place ${value} in ${position(row, col)}.${removalNote}`;
-    steps.push({ board: clone(board), notes, givens, removed, affected: affectedCells(row, col, useSetLogic), placed: [row, col], kind, description: note });
+    const house = kind === 'House Single' ? new Set(houseSingle!.house.map(([houseRow, houseCol]) => cellKey(houseRow, houseCol))) : undefined;
+    const houseNote = kind === 'House Single' ? ' The violet cells mark the relevant house.' : '';
+    steps.push({ board: clone(board), notes, givens, removed, affected: affectedCells(row, col, useSetLogic), placed: [row, col], house, kind, description: `${note}${houseNote}` });
   }
   if (!boardsMatch(board, solution)) return null;
   return { steps, tally, rating };
@@ -154,6 +157,7 @@ function renderBoard(step: Step): HTMLElement {
   const notes = step.notes;
   step.board.forEach((row, r) => row.forEach((value, c) => {
     const cell = document.createElement('div'); cell.className = 'cell'; if (r === 2 || r === 4) cell.classList.add('seam-row'); if (c === 2 || c === 4) cell.classList.add('seam-column');
+    if (step.house?.has(cellKey(r, c))) cell.classList.add('house-cell');
     if (step.affected.has(cellKey(r, c))) cell.classList.add('affected-cell');
     if (step.placed?.[0] === r && step.placed?.[1] === c) cell.classList.add('placed-cell');
     if (value && step.givens[r][c]) cell.classList.add('given-cell');
