@@ -62,10 +62,28 @@ function parsePuzzle(): Board | null {
 }
 function renderGrid(board: Board, givens: Board, alternate?: Board): HTMLElement {
   const grid = document.createElement('div'); grid.className = 'grid verify-grid';
-  board.forEach((row, r) => row.forEach((value, c) => { const cell = document.createElement('div'); cell.className = 'cell'; if (r === 2 || r === 4) cell.classList.add('seam-row'); if (c === 2 || c === 4) cell.classList.add('seam-column'); if (givens[r][c]) cell.classList.add('given-cell'); else cell.classList.add('solved-cell'); if (alternate && value !== alternate[r][c]) cell.classList.add('diff'); cell.textContent = String(value); grid.append(cell); }));
+  board.forEach((row, r) => row.forEach((value, c) => { const cell = document.createElement('div'); cell.className = 'cell'; if (r === 2 || r === 4) cell.classList.add('seam-row'); if (c === 2 || c === 4) cell.classList.add('seam-column'); if (!value) cell.classList.add('empty'); else if (givens[r][c]) cell.classList.add('given-cell'); else cell.classList.add('solved-cell'); if (alternate && value !== alternate[r][c]) cell.classList.add('diff'); cell.textContent = value ? String(value) : ''; grid.append(cell); }));
   return grid;
 }
-function card(title: string, board: Board, givens: Board, alternate?: Board): HTMLElement { const section = document.createElement('section'); section.className = 'puzzle-card verify-card'; section.innerHTML = `<div class="card-topline"><span>${title}</span><span>${alternate ? 'Differences in orange' : 'Unique'}</span></div>`; section.append(renderGrid(board, givens, alternate)); return section; }
+function downloadGridImage(board: Board, filename: string, givens: Board): void {
+  const canvas = document.createElement('canvas'); canvas.width = 700; canvas.height = 700;
+  const context = canvas.getContext('2d')!; const inset = 14; const cell = 96; const gridSize = cell * 7;
+  context.fillStyle = '#fffdf8'; context.fillRect(0, 0, 700, 700); context.fillRect(inset, inset, gridSize, gridSize);
+  context.strokeStyle = '#263d58'; context.lineWidth = 1;
+  for (let index = 1; index < 7; index++) { context.beginPath(); context.moveTo(inset + index * cell, inset); context.lineTo(inset + index * cell, inset + gridSize); context.stroke(); context.beginPath(); context.moveTo(inset, inset + index * cell); context.lineTo(inset + gridSize, inset + index * cell); context.stroke(); }
+  context.lineWidth = 4; context.strokeRect(inset, inset, gridSize, gridSize); context.strokeStyle = '#d96445'; context.lineWidth = 1; context.setLineDash([4, 4]);
+  [2.5, 4.5].forEach((position) => { context.beginPath(); context.moveTo(inset + position * cell, inset); context.lineTo(inset + position * cell, inset + gridSize); context.stroke(); context.beginPath(); context.moveTo(inset, inset + position * cell); context.lineTo(inset + gridSize, inset + position * cell); context.stroke(); });
+  context.setLineDash([]); context.font = '600 52px "Times New Roman"'; context.textAlign = 'center'; context.textBaseline = 'middle';
+  board.forEach((row, r) => row.forEach((value, c) => { if (value) { context.fillStyle = givens[r][c] ? '#111111' : '#1769aa'; context.fillText(String(value), inset + (c + .5) * cell, inset + (r + .5) * cell); } }));
+  const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = filename; link.click();
+}
+function exportMenu(board: Board, givens: Board, filename: string): HTMLDetailsElement {
+  const menu = document.createElement('details'); menu.className = 'export-menu'; const summary = document.createElement('summary'); summary.textContent = 'Export'; const actions = document.createElement('div');
+  const clipboard = document.createElement('button'); clipboard.type = 'button'; clipboard.textContent = 'Clipboard'; clipboard.addEventListener('click', async () => { try { await navigator.clipboard.writeText(board.flat().map((value) => value || '.').join('')); status.textContent = 'Grid copied to clipboard.'; } catch { status.textContent = 'Clipboard access was unavailable. Please try again.'; } menu.removeAttribute('open'); });
+  const image = document.createElement('button'); image.type = 'button'; image.textContent = 'Image'; image.addEventListener('click', () => { downloadGridImage(board, filename, givens); menu.removeAttribute('open'); });
+  actions.append(clipboard, image); menu.append(summary, actions); return menu;
+}
+function card(title: string, board: Board, givens: Board, alternate?: Board, label = 'Unique'): HTMLElement { const section = document.createElement('section'); section.className = 'puzzle-card verify-card'; const topline = document.createElement('div'); topline.className = 'card-topline'; const heading = document.createElement('span'); heading.textContent = title; const detail = document.createElement('span'); detail.textContent = alternate ? 'Differences in orange' : label; topline.append(heading, detail, exportMenu(board, givens, `squishdoku-${title.toLowerCase().replace(/ /g, '-')}.png`)); section.append(topline, renderGrid(board, givens, alternate)); return section; }
 verifyButton.addEventListener('click', () => {
   const puzzle = parsePuzzle(); results.replaceChildren();
   if (!puzzle) { status.textContent = 'Use exactly 49 characters (1–9 or .), or fill the 49 cells.'; return; }
@@ -74,8 +92,9 @@ verifyButton.addEventListener('click', () => {
     const solutions = findSolutions(puzzle);
     verifyButton.disabled = false;
     if (!solutions.length) { status.textContent = 'This puzzle has no solution.'; return; }
-    if (solutions.length === 1) { status.textContent = 'This puzzle has exactly one solution.'; const uniqueCard = card('Completed grid', solutions[0], puzzle); const walkthrough = document.createElement('div'); walkthrough.className = 'walkthrough-host'; uniqueCard.append(walkthrough); mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solutions[0]); results.append(uniqueCard); return; }
+    const finalCard = card('Final grid', puzzle, puzzle, undefined, 'Puzzle');
+    if (solutions.length === 1) { status.textContent = 'This puzzle has exactly one solution.'; const uniqueCard = card('Completed grid', solutions[0], puzzle); const walkthrough = document.createElement('div'); walkthrough.className = 'walkthrough-host'; uniqueCard.append(walkthrough); results.append(finalCard, uniqueCard); mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solutions[0]); return; }
     status.textContent = 'This puzzle does not have a unique solution. Two solutions are shown.';
-    const first = card('Solution 1', solutions[0], puzzle, solutions[1]); const walkthrough = document.createElement('div'); walkthrough.className = 'walkthrough-host'; first.append(walkthrough); mountWalkthrough(walkthrough, puzzle, 'Walkthrough for solution 1', solutions[0]); results.append(first, card('Solution 2', solutions[1], puzzle, solutions[0]));
+    const first = card('Solution 1', solutions[0], puzzle, solutions[1]); const walkthrough = document.createElement('div'); walkthrough.className = 'walkthrough-host'; first.append(walkthrough); results.append(finalCard, first, card('Solution 2', solutions[1], puzzle, solutions[0])); mountWalkthrough(walkthrough, puzzle, 'Walkthrough for solution 1', solutions[0]);
   });
 });
