@@ -25,26 +25,26 @@ const regions: number[][][] = [
 const regionCells = new Map<number, Array<[number, number]>>();
 regions.forEach((row, r) => row.forEach((cellRegions, c) => cellRegions.forEach((region) => { const cells = regionCells.get(region) ?? []; cells.push([r, c]); regionCells.set(region, cells); })));
 const regionUnits = [...regionCells.values()];
-const units: Array<Array<[number, number]>> = [
+const baseUnits: Array<Array<[number, number]>> = [
   ...Array.from({ length: 7 }, (_, row) => Array.from({ length: 7 }, (_, col) => [row, col] as [number, number])),
   ...Array.from({ length: 7 }, (_, col) => Array.from({ length: 7 }, (_, row) => [row, col] as [number, number])),
   ...regionUnits,
-  ...setTuples,
 ];
+const unitsFor = (useSetLogic: boolean): Array<Array<[number, number]>> => useSetLogic ? [...baseUnits, ...setTuples] : baseUnits;
 const clone = (board: Board): Board => board.map((row) => [...row]);
-function valid(board: Board, row: number, col: number, value: number): boolean { return !board[row].some((cell) => cell === value) && !board.some((line) => line[col] === value) && regions[row][col].every((region) => (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value)) && respectsSetTuples(board, row, col, value); }
-function candidates(board: Board, row: number, col: number): number[] { return Array.from({ length: 9 }, (_, index) => index + 1).filter((value) => valid(board, row, col, value)); }
-function nextCell(board: Board): [number, number, number[]] | null { let best: [number, number, number[]] | null = null; for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col]) { const options = candidates(board, row, col); if (!options.length) return [row, col, []]; if (!best || options.length < best[2].length) best = [row, col, options]; } return best; }
-function solve(board: Board): boolean { const cell = nextCell(board); if (!cell) return true; const [row, col, options] = cell; for (const value of options) { board[row][col] = value; if (solve(board)) return true; board[row][col] = 0; } return false; }
+function valid(board: Board, row: number, col: number, value: number, useSetLogic = true): boolean { return !board[row].some((cell) => cell === value) && !board.some((line) => line[col] === value) && regions[row][col].every((region) => (regionCells.get(region) ?? []).every(([r, c]) => (r === row && c === col) || board[r][c] !== value)) && (!useSetLogic || respectsSetTuples(board, row, col, value)); }
+function candidates(board: Board, row: number, col: number, useSetLogic = true): number[] { return Array.from({ length: 9 }, (_, index) => index + 1).filter((value) => valid(board, row, col, value, useSetLogic)); }
+function nextCell(board: Board, useSetLogic = true): [number, number, number[]] | null { let best: [number, number, number[]] | null = null; for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col]) { const options = candidates(board, row, col, useSetLogic); if (!options.length) return [row, col, []]; if (!best || options.length < best[2].length) best = [row, col, options]; } return best; }
+function solve(board: Board, useSetLogic = true): boolean { const cell = nextCell(board, useSetLogic); if (!cell) return true; const [row, col, options] = cell; for (const value of options) { board[row][col] = value; if (solve(board, useSetLogic)) return true; board[row][col] = 0; } return false; }
 function findNaked(board: Board, notes: Notes): [number, number, number] | null { for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col] && notes[row][col].length === 1) return [row, col, notes[row][col][0]]; return null; }
 function findSetSingle(board: Board, notes: Notes): [number, number, number] | null { for (const tuple of setTuples) for (let digit = 1; digit <= 9; digit++) { if (tuple.some(([row, col]) => board[row][col] === digit)) continue; const spots = tuple.filter(([row, col]) => !board[row][col] && notes[row][col].includes(digit)); if (spots.length === 1) return [...spots[0], digit]; } return null; }
 function sameCell(left: [number, number], right: [number, number]): boolean { return left[0] === right[0] && left[1] === right[1]; }
-function findLockedCandidates(board: Board, notes: Notes): { digit: number; source: Array<[number, number]>; target: Array<[number, number]>; removed: Set<string>; affected: Set<string> } | null {
-  for (const source of [...regionUnits, ...setTuples]) for (let digit = 1; digit <= 9; digit++) {
+function findLockedCandidates(board: Board, notes: Notes, useSetLogic: boolean): { digit: number; source: Array<[number, number]>; target: Array<[number, number]>; removed: Set<string>; affected: Set<string> } | null {
+  for (const source of useSetLogic ? [...regionUnits, ...setTuples] : regionUnits) for (let digit = 1; digit <= 9; digit++) {
     if (source.some(([row, col]) => board[row][col] === digit)) continue;
     const spots = source.filter(([row, col]) => !board[row][col] && notes[row][col].includes(digit));
     if (!spots.length) continue;
-    for (const target of units) {
+    for (const target of unitsFor(useSetLogic)) {
       if (target === source) continue;
       const intersection = target.filter((cell) => source.some((sourceCell) => sameCell(sourceCell, cell)));
       if (!intersection.length || !spots.every((spot) => intersection.some((cell) => sameCell(cell, spot)))) continue;
@@ -56,16 +56,16 @@ function findLockedCandidates(board: Board, notes: Notes): { digit: number; sour
   return null;
 }
 function position(row: number, col: number): string { return `r${row + 1}c${col + 1}`; }
-function createNotes(board: Board): Notes { return board.map((row, r) => row.map((value, c) => value ? [] : candidates(board, r, c))); }
+function createNotes(board: Board, useSetLogic: boolean): Notes { return board.map((row, r) => row.map((value, c) => value ? [] : candidates(board, r, c, useSetLogic))); }
 function cloneNotes(notes: Notes): Notes { return notes.map((row) => row.map((cell) => [...cell])); }
-function reconcileNotes(notes: Notes, board: Board): Notes { return board.map((row, r) => row.map((value, c) => value ? [] : candidates(board, r, c).filter((digit) => notes[r][c].includes(digit)))); }
+function reconcileNotes(notes: Notes, board: Board, useSetLogic: boolean): Notes { return board.map((row, r) => row.map((value, c) => value ? [] : candidates(board, r, c, useSetLogic).filter((digit) => notes[r][c].includes(digit)))); }
 function noteKey(row: number, col: number, digit: number): string { return `${row}:${col}:${digit}`; }
 function cellKey(row: number, col: number): string { return `${row}:${col}`; }
-function affectedCells(row: number, col: number): Set<string> {
+function affectedCells(row: number, col: number, useSetLogic: boolean): Set<string> {
   const affected = new Set<string>();
   for (let index = 0; index < 7; index++) { affected.add(cellKey(row, index)); affected.add(cellKey(index, col)); }
   regions[row][col].forEach((region) => (regionCells.get(region) ?? []).forEach(([r, c]) => affected.add(cellKey(r, c))));
-  setTuples.filter((tuple) => tuple.some(([r, c]) => r === row && c === col)).forEach((tuple) => tuple.forEach(([r, c]) => affected.add(cellKey(r, c))));
+  if (useSetLogic) setTuples.filter((tuple) => tuple.some(([r, c]) => r === row && c === col)).forEach((tuple) => tuple.forEach(([r, c]) => affected.add(cellKey(r, c))));
   return affected;
 }
 function removedNotes(before: Notes, after: Notes, board: Board): Set<string> {
@@ -80,8 +80,8 @@ function combinations<T>(items: T[], size: number): T[][] {
   if (size === 0) return [[]]; if (items.length < size) return [];
   const [head, ...tail] = items; return [...combinations(tail, size - 1).map((set) => [head, ...set]), ...combinations(tail, size)];
 }
-function findNakedSubset(board: Board, notes: Notes, size: 2 | 3 | 4): { cells: Array<[number, number]>; digits: number[]; removed: Set<string>; affected: Set<string> } | null {
-  for (const unit of units) {
+function findNakedSubset(board: Board, notes: Notes, size: 2 | 3 | 4, useSetLogic: boolean): { cells: Array<[number, number]>; digits: number[]; removed: Set<string>; affected: Set<string> } | null {
+  for (const unit of unitsFor(useSetLogic)) {
     const eligible = unit.filter(([row, col]) => !board[row][col] && notes[row][col].length >= 2 && notes[row][col].length <= size);
     for (const cells of combinations(eligible, size)) {
       const digits = [...new Set(cells.flatMap(([row, col]) => notes[row][col]))].sort((left, right) => left - right);
@@ -97,10 +97,10 @@ function findNakedSubset(board: Board, notes: Notes, size: 2 | 3 | 4): { cells: 
   }
   return null;
 }
-function completedBoardIsValid(board: Board): boolean {
+function completedBoardIsValid(board: Board, useSetLogic: boolean): boolean {
   for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) {
     const value = board[row][col]; if (value < 1 || value > 9) return false;
-    board[row][col] = 0; const okay = valid(board, row, col, value); board[row][col] = value;
+    board[row][col] = 0; const okay = valid(board, row, col, value, useSetLogic); board[row][col] = value;
     if (!okay) return false;
   }
   return true;
@@ -108,19 +108,19 @@ function completedBoardIsValid(board: Board): boolean {
 function matchesGivens(puzzle: Board, solution: Board): boolean { return puzzle.every((row, r) => row.every((value, c) => !value || value === solution[r][c])); }
 function boardsMatch(left: Board, right: Board): boolean { return left.every((row, r) => row.every((value, c) => value === right[r][c])); }
 function removalsMatchSolution(removed: Set<string>, solution: Board): boolean { return [...removed].every((key) => { const [row, col, digit] = key.split(':').map(Number); return solution[row][col] !== digit; }); }
-function solveSteps(initial: Board, target?: Board): { steps: Step[]; tally: Map<MoveKind, number>; rating: number } | null {
-  const solution = clone(target ?? initial); if (!target && !solve(solution)) return null;
-  if (!completedBoardIsValid(solution) || !matchesGivens(initial, solution)) return null;
-  const board = clone(initial); const givens = initial.map((row) => row.map(Boolean)); let notes = createNotes(board);
+function solveSteps(initial: Board, target?: Board, useSetLogic = true): { steps: Step[]; tally: Map<MoveKind, number>; rating: number } | null {
+  const solution = clone(target ?? initial); if (!target && !solve(solution, useSetLogic)) return null;
+  if (!completedBoardIsValid(solution, useSetLogic) || !matchesGivens(initial, solution)) return null;
+  const board = clone(initial); const givens = initial.map((row) => row.map(Boolean)); let notes = createNotes(board, useSetLogic);
   const steps: Step[] = [{ board: clone(board), notes, givens, removed: new Set(), affected: new Set(), placed: null, kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
   const tally = new Map<MoveKind, number>(); let rating = 0;
   while (board.some((row) => row.some((value) => !value))) {
-    const naked = findNaked(board, notes); const setSingle = naked ? null : findSetSingle(board, notes); const locked = naked || setSingle ? null : findLockedCandidates(board, notes); const subset = naked || setSingle || locked ? null : findNakedSubset(board, notes, 2) ?? findNakedSubset(board, notes, 3) ?? findNakedSubset(board, notes, 4);
+    const naked = findNaked(board, notes); const setSingle = naked || !useSetLogic ? null : findSetSingle(board, notes); const locked = naked || setSingle ? null : findLockedCandidates(board, notes, useSetLogic); const subset = naked || setSingle || locked ? null : findNakedSubset(board, notes, 2, useSetLogic) ?? findNakedSubset(board, notes, 3, useSetLogic) ?? findNakedSubset(board, notes, 4, useSetLogic);
     if (locked) {
       if (!removalsMatchSolution(locked.removed, solution)) return null;
       const nextNotes = cloneNotes(notes); locked.removed.forEach((key) => { const [row, col, digit] = key.split(':').map(Number); nextNotes[row][col] = nextNotes[row][col].filter((candidate) => candidate !== digit); });
       notes = nextNotes; tally.set('Locked Candidates', (tally.get('Locked Candidates') ?? 0) + 1);
-      steps.push({ board: clone(board), notes, givens, removed: locked.removed, affected: locked.affected, placed: null, kind: 'Locked Candidates', description: `Locked Candidates: ${locked.digit} is confined to the overlap of a complete region/set; ${locked.removed.size} Snyder notation${locked.removed.size === 1 ? ' is' : 's are'} removed in red.` });
+      steps.push({ board: clone(board), notes, givens, removed: locked.removed, affected: locked.affected, placed: null, kind: 'Locked Candidates', description: `Locked Candidates: ${locked.digit} is confined to the overlap of complete units; ${locked.removed.size} Snyder notation${locked.removed.size === 1 ? ' is' : 's are'} removed in red.` });
       continue;
     }
     if (subset) {
@@ -136,18 +136,18 @@ function solveSteps(initial: Board, target?: Board): { steps: Step[]; tally: Map
     let row: number; let col: number; let value: number; let kind: MoveKind;
     if (naked && naked[2] === solution[naked[0]][naked[1]]) { [row, col, value] = naked; kind = 'Naked Single'; rating += 10; }
     else if (setSingle && setSingle[2] === solution[setSingle[0]][setSingle[1]]) { [row, col, value] = setSingle; kind = 'Set Single'; rating += 20; }
-    else { const cell = nextCell(board); if (!cell) return null; [row, col] = cell; value = solution[row][col]; if (!notes[row][col].includes(value)) return null; kind = 'Brute Force'; rating += 10000; }
+    else { const cell = nextCell(board, useSetLogic); if (!cell) return null; [row, col] = cell; value = solution[row][col]; if (!notes[row][col].includes(value)) return null; kind = 'Brute Force'; rating += 10000; }
     board[row][col] = value; tally.set(kind, (tally.get(kind) ?? 0) + 1);
-    const nextNotes = reconcileNotes(notes, board); const removed = removedNotes(notes, nextNotes, board); notes = nextNotes;
+    const nextNotes = reconcileNotes(notes, board, useSetLogic); const removed = removedNotes(notes, nextNotes, board); notes = nextNotes;
     const removalNote = removed.size ? ` ${removed.size} Snyder notation${removed.size === 1 ? ' is' : 's are'} removed in red.` : '';
     const note = kind === 'Brute Force' ? `No available technique could progress; brute force places ${value} in ${position(row, col)} (+10,000).${removalNote}` : `${kind}: place ${value} in ${position(row, col)}.${removalNote}`;
-    steps.push({ board: clone(board), notes, givens, removed, affected: affectedCells(row, col), placed: [row, col], kind, description: note });
+    steps.push({ board: clone(board), notes, givens, removed, affected: affectedCells(row, col, useSetLogic), placed: [row, col], kind, description: note });
   }
   if (!boardsMatch(board, solution)) return null;
   return { steps, tally, rating };
 }
 export function getWalkthroughRating(puzzle: Board, solution?: Board): number | null {
-  return solveSteps(puzzle, solution)?.rating ?? null;
+  return solveSteps(puzzle, solution, true)?.rating ?? null;
 }
 function renderBoard(step: Step): HTMLElement {
   const grid = document.createElement('div'); grid.className = 'grid walkthrough-grid';
@@ -169,29 +169,36 @@ function renderBoard(step: Step): HTMLElement {
   return grid;
 }
 export function mountWalkthrough(container: HTMLElement, puzzle: Board, heading = 'Solution walkthrough', target?: Board): void {
-  const walk = solveSteps(puzzle, target); container.replaceChildren();
-  if (!walk) { container.textContent = 'A validated walkthrough is unavailable for this puzzle.'; return; }
-  let current = 0; const section = document.createElement('section'); section.className = 'walkthrough';
-  const title = document.createElement('h2'); title.textContent = heading; const meta = document.createElement('p'); meta.className = 'walkthrough-meta';
-  const tally = [...walk.tally.entries()].map(([kind, count]) => `${count} × ${kind}`).join(' · ') || 'No placements required'; const level = walk.rating >= 10000 ? 'Brute force' : walk.rating > 100 ? 'Intermediate' : 'Beginner';
-  meta.textContent = `Difficulty: ${level} · Rating: ${walk.rating} · ${tally}`;
-  const stepTable = document.createElement('table'); stepTable.className = 'walkthrough-steps';
-  const tableHead = document.createElement('thead'); const headingRow = document.createElement('tr');
-  ['Technique', 'Steps'].forEach((label) => { const heading = document.createElement('th'); heading.scope = 'col'; heading.textContent = label; headingRow.append(heading); });
-  tableHead.append(headingRow); const tableBody = document.createElement('tbody'); const techniqueSteps = new Map<MoveKind, number[]>();
-  walk.steps.forEach((step, index) => { const steps = techniqueSteps.get(step.kind) ?? []; steps.push(index); techniqueSteps.set(step.kind, steps); });
-  [...techniqueSteps.entries()].sort(([left], [right]) => techniqueDifficulty[left] - techniqueDifficulty[right]).forEach(([kind, steps]) => {
-    const row = document.createElement('tr'); const technique = document.createElement('td'); const details = document.createElement('td');
-    technique.textContent = kind; details.textContent = steps.join(', '); row.append(technique, details); tableBody.append(row);
-  });
-  stepTable.append(tableHead, tableBody);
-  const board = document.createElement('div'); const description = document.createElement('p'); description.className = 'walkthrough-description';
-  const slider = document.createElement('input'); slider.type = 'range'; slider.min = '0'; slider.max = String(walk.steps.length - 1); slider.value = '0'; slider.setAttribute('aria-label', 'Walkthrough step');
-  const counter = document.createElement('span'); counter.className = 'step-counter';
-  const controls = document.createElement('div'); controls.className = 'walkthrough-controls';
-  const actions: Array<[string, () => number]> = [['<<', () => 0], ['<', () => Math.max(0, current - 1)], ['>', () => Math.min(walk.steps.length - 1, current + 1)], ['>>', () => walk.steps.length - 1]];
-  const render = (): void => { board.replaceChildren(renderBoard(walk.steps[current])); description.textContent = walk.steps[current].description; slider.value = String(current); counter.textContent = `Step ${current} of ${walk.steps.length - 1}`; };
-  actions.forEach(([label, getStep]) => { const button = document.createElement('button'); button.className = 'walk-button'; button.type = 'button'; button.textContent = label; button.addEventListener('click', () => { current = getStep(); render(); }); controls.append(button); });
-  slider.addEventListener('input', () => { current = Number(slider.value); render(); });
-  section.append(title, meta, stepTable, board, description, slider, controls, counter); container.append(section); render();
+  let useSetLogic = true;
+  const renderWalkthrough = (): void => {
+    const walk = solveSteps(puzzle, target, useSetLogic); container.replaceChildren();
+    if (!walk) { container.textContent = 'A validated walkthrough is unavailable for this puzzle with the selected techniques.'; return; }
+    let current = 0; const section = document.createElement('section'); section.className = 'walkthrough';
+    const title = document.createElement('h2'); title.textContent = heading; const setLogicControl = document.createElement('label'); setLogicControl.className = 'set-logic-toggle';
+    const setLogicInput = document.createElement('input'); setLogicInput.type = 'checkbox'; setLogicInput.checked = useSetLogic; const setLogicText = document.createElement('span'); setLogicText.textContent = 'Use Set logic'; setLogicControl.append(setLogicInput, setLogicText);
+    setLogicInput.addEventListener('change', () => { useSetLogic = setLogicInput.checked; renderWalkthrough(); });
+    const meta = document.createElement('p'); meta.className = 'walkthrough-meta';
+    const tally = [...walk.tally.entries()].map(([kind, count]) => `${count} × ${kind}`).join(' · ') || 'No placements required'; const level = walk.rating >= 10000 ? 'Brute force' : walk.rating > 100 ? 'Intermediate' : 'Beginner';
+    meta.textContent = `Set logic: ${useSetLogic ? 'enabled' : 'disabled'} · Difficulty: ${level} · Rating: ${walk.rating} · ${tally}`;
+    const stepTable = document.createElement('table'); stepTable.className = 'walkthrough-steps';
+    const tableHead = document.createElement('thead'); const headingRow = document.createElement('tr');
+    ['Technique', 'Steps'].forEach((label) => { const heading = document.createElement('th'); heading.scope = 'col'; heading.textContent = label; headingRow.append(heading); });
+    tableHead.append(headingRow); const tableBody = document.createElement('tbody'); const techniqueSteps = new Map<MoveKind, number[]>();
+    walk.steps.forEach((step, index) => { const steps = techniqueSteps.get(step.kind) ?? []; steps.push(index); techniqueSteps.set(step.kind, steps); });
+    [...techniqueSteps.entries()].sort(([left], [right]) => techniqueDifficulty[left] - techniqueDifficulty[right]).forEach(([kind, steps]) => {
+      const row = document.createElement('tr'); const technique = document.createElement('td'); const details = document.createElement('td');
+      technique.textContent = kind; details.textContent = steps.join(', '); row.append(technique, details); tableBody.append(row);
+    });
+    stepTable.append(tableHead, tableBody);
+    const board = document.createElement('div'); const description = document.createElement('p'); description.className = 'walkthrough-description';
+    const slider = document.createElement('input'); slider.type = 'range'; slider.min = '0'; slider.max = String(walk.steps.length - 1); slider.value = '0'; slider.setAttribute('aria-label', 'Walkthrough step');
+    const counter = document.createElement('span'); counter.className = 'step-counter';
+    const controls = document.createElement('div'); controls.className = 'walkthrough-controls';
+    const actions: Array<[string, () => number]> = [['<<', () => 0], ['<', () => Math.max(0, current - 1)], ['>', () => Math.min(walk.steps.length - 1, current + 1)], ['>>', () => walk.steps.length - 1]];
+    const render = (): void => { board.replaceChildren(renderBoard(walk.steps[current])); description.textContent = walk.steps[current].description; slider.value = String(current); counter.textContent = `Step ${current} of ${walk.steps.length - 1}`; };
+    actions.forEach(([label, getStep]) => { const button = document.createElement('button'); button.className = 'walk-button'; button.type = 'button'; button.textContent = label; button.addEventListener('click', () => { current = getStep(); render(); }); controls.append(button); });
+    slider.addEventListener('input', () => { current = Number(slider.value); render(); });
+    section.append(title, setLogicControl, meta, stepTable, board, description, slider, controls, counter); container.append(section); render();
+  };
+  renderWalkthrough();
 }
