@@ -128,11 +128,14 @@ const puzzleGrid = document.querySelector<HTMLDivElement>('#puzzle-grid')!;
 const generateButton = document.querySelector<HTMLButtonElement>('#generate')!;
 const diggingMethod = document.querySelector<HTMLSelectElement>('#digging-method')!;
 const givensCount = document.querySelector<HTMLParagraphElement>('#givens-count')!;
-const generateRating = document.querySelector<HTMLParagraphElement>('#generate-rating')!;
-const hardestTechnique = document.querySelector<HTMLParagraphElement>('#hardest-technique')!;
+const withSetRating = document.querySelector<HTMLTableCellElement>('#with-set-rating')!;
+const withoutSetRating = document.querySelector<HTMLTableCellElement>('#without-set-rating')!;
+const withSetHardest = document.querySelector<HTMLButtonElement>('#with-set-hardest')!;
+const withoutSetHardest = document.querySelector<HTMLButtonElement>('#without-set-hardest')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
 const walkthrough = document.querySelector<HTMLElement>('#generate-walkthrough')!;
 const exportButtons = document.querySelectorAll<HTMLButtonElement>('[data-export]');
+const statCopyButtons = document.querySelectorAll<HTMLButtonElement>('[data-copy]');
 const gridSlideButtons = document.querySelectorAll<HTMLButtonElement>('[data-grid-slide]');
 const solutionCard = document.querySelector<HTMLElement>('#solution-card')!;
 const puzzleCard = document.querySelector<HTMLElement>('#puzzle-card')!;
@@ -199,8 +202,8 @@ function makeGrid(): void {
       const withoutSetLogic = getWalkthroughProfile(puzzle, solution, false);
       const method = diggingMethod.value === 'dual' ? 'dual-cell' : 'single-cell';
       givensCount.textContent = `${clues} givens`;
-      generateRating.textContent = `Difficulty ratings: Set logic ${withSetLogic?.rating ?? 'unavailable'} · without Set logic ${withoutSetLogic?.rating ?? 'unavailable'}`;
-      hardestTechnique.textContent = `Hardest technique: ${withSetLogic?.hardest ?? 'unavailable'}`;
+      withSetRating.textContent = String(withSetLogic?.rating ?? 'unavailable'); withoutSetRating.textContent = String(withoutSetLogic?.rating ?? 'unavailable');
+      withSetHardest.textContent = withSetLogic?.hardest ?? 'unavailable'; withoutSetHardest.textContent = withoutSetLogic?.hardest ?? 'unavailable';
       status.textContent = `Done in ${(elapsed / 1000).toFixed(2)}s — ${method} digging, with exactly one solution.`;
     } catch {
       status.textContent = 'That one got tangled. Please try again.';
@@ -227,5 +230,11 @@ exportButtons.forEach((button) => button.addEventListener('click', async () => {
     catch { status.textContent = 'Clipboard access was unavailable. Please try again.'; }
   }
   button.closest('details')?.removeAttribute('open');
+}));
+statCopyButtons.forEach((button) => button.addEventListener('click', async () => {
+  const copyType = button.dataset.copy; const value = copyType === 'with-technique' ? withSetHardest.textContent : copyType === 'without-technique' ? withoutSetHardest.textContent : currentPuzzle?.flat().map((cell) => cell || '.').join('');
+  if (!value || value === '—' || value === 'unavailable') return;
+  try { await navigator.clipboard.writeText(value); status.textContent = copyType === 'grid' ? 'Final dug puzzle copied to clipboard.' : 'Hardest technique copied to clipboard.'; }
+  catch { status.textContent = 'Clipboard access was unavailable. Please try again.'; }
 }));
 makeGrid();

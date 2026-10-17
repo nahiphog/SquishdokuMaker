@@ -22,8 +22,14 @@
           </select>
         </label>
         <p id="givens-count" class="givens-count" aria-live="polite">Givens will appear here.</p>
-        <p id="generate-rating" class="difficulty-rating" aria-live="polite">Difficulty rating will appear here.</p>
-        <p id="hardest-technique" class="hardest-technique" aria-live="polite">Hardest technique will appear here.</p>
+        <table class="generate-stats" aria-label="Generated puzzle statistics">
+          <thead><tr><th>Stats</th><th>With Set logic</th><th>Without Set logic</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Difficulty ratings</th><td id="with-set-rating">—</td><td id="without-set-rating">—</td></tr>
+            <tr><th scope="row">Hardest technique</th><td><button id="with-set-hardest" class="stat-copy" type="button" data-copy="with-technique">—</button></td><td><button id="without-set-hardest" class="stat-copy" type="button" data-copy="without-technique">—</button></td></tr>
+            <tr><th scope="row">Copy grid to clipboard</th><td><button class="stat-copy" type="button" data-copy="grid">Copy grid</button></td><td><button class="stat-copy" type="button" data-copy="grid">Copy grid</button></td></tr>
+          </tbody>
+        </table>
         <p id="status" class="status" aria-live="polite">Ready when you are.</p>
       </section>
       <div class="boards">
