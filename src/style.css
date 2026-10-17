@@ -52,3 +52,10 @@ footer { margin: 0 auto; padding: 0 20px 27px; color: #78838a; font-size: .61rem
 .selected-cells, .difficulty-constraint { font-size: .975rem; }.walkthrough-meta, .walkthrough-description, .step-counter { font-size: 1.02rem; }.techniques-intro { font-size: 1.155rem; }.technique-card p { font-size: 1.05rem; }.technique-note { font-size: 1.005rem; }
 .legend { font-size: .945rem; } footer { font-size: .915rem; }.control-note { font-size: .9rem; }.walkthrough-steps { font-size: .945rem; }.set-logic-toggle { font-size: 1.02rem; }.pattern-control { font-size: 1.05rem; }.pattern-histogram:empty::before { font-size: 1.05rem; }.pattern-bar { font-size: .975rem; }
 @media (max-width: 650px) { .bar-count, .bar-label { font-size: .75rem; } }
+
+/* Persistent brand and consistently prominent Squishdoku seams. */
+.site-nav { align-items: center; justify-content: space-between; }.site-brand { color: #263d58; font: 700 clamp(1.3rem, 3vw, 1.8rem) Fraunces, Georgia, serif; letter-spacing: -.04em; text-decoration: none; text-transform: none; }.site-nav a.site-brand { padding: 0; color: #263d58; }.site-nav a.site-brand:hover { color: #d96445; background: transparent; }
+.entry-grid::before { background-size: 2px 100%, 2px 100%; }.entry-grid::after { background-size: 100% 2px, 100% 2px; }.cell.seam-row::after { border-top-width: 2px; }.cell.seam-column::before { border-left-width: 2px; }.mini-grid .cell.seam-row::after, .mini-grid .cell.seam-column::before { border-width: 2px; }
+
+/* The compact three-column Generate stats table is half its previous size. */
+.generate-stats { font-size: .93rem; }.generate-stats td { font-size: .7rem; }.generate-stats .stat-copy { font-size: .62rem; }

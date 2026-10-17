@@ -174,7 +174,7 @@ function downloadGridImage(board: Board, filename: string, givens?: Board): void
     context.beginPath(); context.moveTo(inset, inset + index * cell); context.lineTo(inset + gridSize, inset + index * cell); context.stroke();
   }
   context.lineWidth = 4; context.strokeRect(inset, inset, gridSize, gridSize);
-  context.strokeStyle = '#d96445'; context.lineWidth = 1; context.setLineDash([4, 4]);
+  context.strokeStyle = '#d96445'; context.lineWidth = 2; context.setLineDash([4, 4]);
   [2.5, 4.5].forEach((position) => {
     context.beginPath(); context.moveTo(inset + position * cell, inset); context.lineTo(inset + position * cell, inset + gridSize); context.stroke();
     context.beginPath(); context.moveTo(inset, inset + position * cell); context.lineTo(inset + gridSize, inset + position * cell); context.stroke();

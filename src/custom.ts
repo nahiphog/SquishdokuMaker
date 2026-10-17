@@ -78,7 +78,7 @@ function downloadGridImage(board: Board): void {
   context.fillStyle = '#fffdf8'; context.fillRect(0, 0, 700, 700); context.fillRect(inset, inset, gridSize, gridSize);
   context.strokeStyle = '#263d58'; context.lineWidth = 1;
   for (let index = 1; index < 7; index++) { context.beginPath(); context.moveTo(inset + index * cell, inset); context.lineTo(inset + index * cell, inset + gridSize); context.stroke(); context.beginPath(); context.moveTo(inset, inset + index * cell); context.lineTo(inset + gridSize, inset + index * cell); context.stroke(); }
-  context.lineWidth = 4; context.strokeRect(inset, inset, gridSize, gridSize); context.strokeStyle = '#d96445'; context.lineWidth = 1; context.setLineDash([4, 4]);
+  context.lineWidth = 4; context.strokeRect(inset, inset, gridSize, gridSize); context.strokeStyle = '#d96445'; context.lineWidth = 2; context.setLineDash([4, 4]);
   [2.5, 4.5].forEach((position) => { context.beginPath(); context.moveTo(inset + position * cell, inset); context.lineTo(inset + position * cell, inset + gridSize); context.stroke(); context.beginPath(); context.moveTo(inset, inset + position * cell); context.lineTo(inset + gridSize, inset + position * cell); context.stroke(); });
   context.setLineDash([]); context.fillStyle = '#263d58'; context.font = '600 52px Georgia'; context.textAlign = 'center'; context.textBaseline = 'middle'; board.forEach((row, r) => row.forEach((value, c) => { if (value) context.fillText(String(value), inset + (c + .5) * cell, inset + (r + .5) * cell); }));
   const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = 'squishdoku-custom-build.png'; link.click();
