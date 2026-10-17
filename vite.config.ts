@@ -11,6 +11,8 @@ export default defineConfig({
         verify: resolve(__dirname, 'verify/index.html'),
         simulation: resolve(__dirname, 'simulation/index.html'),
         simulationPattern: resolve(__dirname, 'simulation-pattern/index.html'),
+        simlationSteps: resolve(__dirname, 'simlation-steps/index.html'),
+        simulationSteps: resolve(__dirname, 'simulation-steps/index.html'),
         techniques: resolve(__dirname, 'techniques/index.html'),
       },
     },

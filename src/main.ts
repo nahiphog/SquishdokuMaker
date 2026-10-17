@@ -130,6 +130,8 @@ const diggingMethod = document.querySelector<HTMLSelectElement>('#digging-method
 const givensCount = document.querySelector<HTMLParagraphElement>('#givens-count')!;
 const withSetRating = document.querySelector<HTMLTableCellElement>('#with-set-rating')!;
 const withoutSetRating = document.querySelector<HTMLTableCellElement>('#without-set-rating')!;
+const withSetSteps = document.querySelector<HTMLTableCellElement>('#with-set-steps')!;
+const withoutSetSteps = document.querySelector<HTMLTableCellElement>('#without-set-steps')!;
 const withSetHardest = document.querySelector<HTMLButtonElement>('#with-set-hardest')!;
 const withoutSetHardest = document.querySelector<HTMLButtonElement>('#without-set-hardest')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
@@ -203,6 +205,7 @@ function makeGrid(): void {
       const method = diggingMethod.value === 'dual' ? 'dual-cell' : 'single-cell';
       givensCount.textContent = `${clues} givens`;
       withSetRating.textContent = String(withSetLogic?.rating ?? 'unavailable'); withoutSetRating.textContent = String(withoutSetLogic?.rating ?? 'unavailable');
+      withSetSteps.textContent = String(withSetLogic?.steps ?? 'unavailable'); withoutSetSteps.textContent = String(withoutSetLogic?.steps ?? 'unavailable');
       withSetHardest.textContent = withSetLogic?.hardest ?? 'unavailable'; withoutSetHardest.textContent = withoutSetLogic?.hardest ?? 'unavailable';
       status.textContent = `Done in ${(elapsed / 1000).toFixed(2)}s — ${method} digging, with exactly one solution.`;
     } catch {
@@ -232,9 +235,9 @@ exportButtons.forEach((button) => button.addEventListener('click', async () => {
   button.closest('details')?.removeAttribute('open');
 }));
 statCopyButtons.forEach((button) => button.addEventListener('click', async () => {
-  const copyType = button.dataset.copy; const value = copyType === 'with-technique' ? withSetHardest.textContent : copyType === 'without-technique' ? withoutSetHardest.textContent : currentPuzzle?.flat().map((cell) => cell || '.').join('');
+  const copyType = button.dataset.copy; const value = copyType === 'with-technique' ? withSetHardest.textContent : withoutSetHardest.textContent;
   if (!value || value === '—' || value === 'unavailable') return;
-  try { await navigator.clipboard.writeText(value); status.textContent = copyType === 'grid' ? 'Final dug puzzle copied to clipboard.' : 'Hardest technique copied to clipboard.'; }
+  try { await navigator.clipboard.writeText(value); status.textContent = 'Hardest technique copied to clipboard.'; }
   catch { status.textContent = 'Clipboard access was unavailable. Please try again.'; }
 }));
 makeGrid();

@@ -150,10 +150,10 @@ function solveSteps(initial: Board, target?: Board, useSetLogic = true): { steps
   return { steps, tally, rating };
 }
 export function getWalkthroughRating(puzzle: Board, solution?: Board): number | null { return solveSteps(puzzle, solution, true)?.rating ?? null; }
-export function getWalkthroughProfile(puzzle: Board, solution: Board | undefined, useSetLogic: boolean): { rating: number; hardest: MoveKind } | null {
+export function getWalkthroughProfile(puzzle: Board, solution: Board | undefined, useSetLogic: boolean): { rating: number; hardest: MoveKind; steps: number } | null {
   const walk = solveSteps(puzzle, solution, useSetLogic); if (!walk) return null;
   const techniques = [...new Set(walk.steps.map((step) => step.kind))].sort((left, right) => techniqueDifficulty[left] - techniqueDifficulty[right]);
-  return { rating: walk.rating, hardest: techniques[techniques.length - 1] };
+  return { rating: walk.rating, hardest: techniques[techniques.length - 1], steps: walk.steps.length - 1 };
 }
 function renderBoard(step: Step): HTMLElement {
   const grid = document.createElement('div'); grid.className = 'grid walkthrough-grid';
