@@ -43,6 +43,8 @@ function findSolutions(board: Board, limit = 2): Board[] {
 const stringInput = document.querySelector<HTMLInputElement>('#puzzle-string')!;
 const entryGrid = document.querySelector<HTMLDivElement>('#entry-grid')!;
 const verifyButton = document.querySelector<HTMLButtonElement>('#verify-puzzle')!;
+const clearInputButton = document.querySelector<HTMLButtonElement>('#clear-input')!;
+const pasteClipboardButton = document.querySelector<HTMLButtonElement>('#paste-clipboard')!;
 const status = document.querySelector<HTMLParagraphElement>('#verify-status')!;
 const results = document.querySelector<HTMLElement>('#verify-results')!;
 const inputs: HTMLInputElement[] = [];
@@ -54,6 +56,29 @@ for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) {
   input.addEventListener('keydown', (event) => { if (event.key === 'ArrowRight' || event.key === 'ArrowDown') { event.preventDefault(); inputs[Math.min(48, inputs.indexOf(input) + (event.key === 'ArrowRight' ? 1 : 7))].focus(); } if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') { event.preventDefault(); inputs[Math.max(0, inputs.indexOf(input) - (event.key === 'ArrowLeft' ? 1 : 7))].focus(); } });
   inputs.push(input); entryGrid.append(input);
 }
+clearInputButton.addEventListener('click', () => {
+  stringInput.value = '';
+  inputs.forEach((input) => { input.value = ''; });
+  results.replaceChildren();
+  status.textContent = 'Input cleared.';
+  stringInput.focus();
+});
+pasteClipboardButton.addEventListener('click', async () => {
+  try {
+    const pasted = (await navigator.clipboard.readText()).trim().replace(/\s/g, '');
+    if (pasted.length !== 49 || /[^1-9.]/.test(pasted)) {
+      status.textContent = 'Clipboard must contain exactly 49 characters (1–9 or .).';
+      return;
+    }
+    stringInput.value = pasted;
+    inputs.forEach((input) => { input.value = ''; });
+    results.replaceChildren();
+    status.textContent = 'Puzzle pasted from clipboard.';
+    stringInput.focus();
+  } catch {
+    status.textContent = 'Clipboard access was unavailable. Please paste into the string field instead.';
+  }
+});
 function parsePuzzle(): Board | null {
   const supplied = stringInput.value.trim();
   const characters = supplied ? [...supplied] : inputs.map((input) => input.value || '.');

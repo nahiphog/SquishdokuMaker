@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f5f0e7" />
     <title>Verify — Squishdoku</title>
-    <script type="module" crossorigin src="/SquishdokuMaker/assets/verify-CO_GVfci.js"></script>
-    <link rel="modulepreload" crossorigin href="/SquishdokuMaker/assets/style-Cjrv03aY.js">
+    <script type="module" crossorigin src="/SquishdokuMaker/assets/verify-C92AVU9W.js"></script>
+    <link rel="modulepreload" crossorigin href="/SquishdokuMaker/assets/style-CQqf6g2g.js">
     <link rel="modulepreload" crossorigin href="/SquishdokuMaker/assets/set-tuples-DgyoBLzL.js">
-    <link rel="modulepreload" crossorigin href="/SquishdokuMaker/assets/walkthrough-BxMhfeTP.js">
-    <link rel="stylesheet" crossorigin href="/SquishdokuMaker/assets/style-CBUCTScW.css">
+    <link rel="modulepreload" crossorigin href="/SquishdokuMaker/assets/walkthrough-BTXcgiJ7.js">
+    <link rel="stylesheet" crossorigin href="/SquishdokuMaker/assets/style-BLeH_i0n.css">
   </head>
   <body>
     <nav class="site-nav" aria-label="Main navigation"><details class="nav-menu"><summary>Pages</summary><div><a href="../">Generate</a><a href="../custom-build/">Custom build</a><a class="active" href="../verify/">Verify</a><a href="../simulation/">Simulation</a><a href="../simulation-pattern/">Simulation pattern</a><a href="../simlation-steps/">Simulation Difficulty</a><a href="../simulation-steps/">Simulation steps</a><a href="../simulation-subset/">Simulation subset</a><a href="../techniques/">Techniques</a></div></details></nav>
@@ -21,7 +21,11 @@
         </label>
         <p id="string-help" class="input-help">Or fill the grid below. The string takes priority when supplied.</p>
         <div id="entry-grid" class="grid entry-grid" role="grid" aria-label="Enter a Squishdoku puzzle"></div>
-        <button id="verify-puzzle" type="button">Verify puzzle</button>
+        <div class="verify-actions">
+          <button id="verify-puzzle" type="button">Verify puzzle</button>
+          <button id="clear-input" class="secondary-button" type="button">Clear input</button>
+          <button id="paste-clipboard" class="secondary-button" type="button">Paste clipboard</button>
+        </div>
         <p id="verify-status" class="status" aria-live="polite">Enter a puzzle to check its solutions.</p>
       </section>
       <section id="verify-results" class="verify-results" aria-live="polite"></section>
