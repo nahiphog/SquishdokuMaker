@@ -126,16 +126,24 @@ function solveSteps(initial: Board, target?: Board, useSetLogic = true): { steps
   const steps: Step[] = [{ board: clone(board), notes, givens, removed: new Set(), affected: new Set(), placed: null, kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
   const tally = new Map<MoveKind, number>(); let rating = 0;
   while (board.some((row) => row.some((value) => !value))) {
-    const houseSingle = useSetLogic ? findHouseSingle(board, notes) : null; const naked = houseSingle ? null : findNaked(board, notes); const locked = houseSingle || naked ? null : findLockedCandidates(board, notes, useSetLogic); const subset = houseSingle || naked || locked ? null : findNakedSubset(board, notes, 2, useSetLogic) ?? findNakedSubset(board, notes, 3, useSetLogic) ?? findNakedSubset(board, notes, 4, useSetLogic); const hiddenQuad = houseSingle || naked || locked || subset ? null : findHiddenQuadruple(board, notes, useSetLogic);
+    const houseSingle = useSetLogic ? findHouseSingle(board, notes) : null;
+    const naked = houseSingle ? null : findNaked(board, notes);
+    // A candidate pattern is only shown when it agrees with the verified target
+    // solution. A rejected pattern must not invalidate the earlier, perfectly
+    // sound walkthrough steps or trigger an all-brute-force restart.
+    let locked = houseSingle || naked ? null : findLockedCandidates(board, notes, useSetLogic);
+    if (locked && !removalsMatchSolution(locked.removed, solution)) locked = null;
+    let subset = houseSingle || naked || locked ? null : findNakedSubset(board, notes, 2, useSetLogic) ?? findNakedSubset(board, notes, 3, useSetLogic) ?? findNakedSubset(board, notes, 4, useSetLogic);
+    if (subset && !removalsMatchSolution(subset.removed, solution)) subset = null;
+    let hiddenQuad = houseSingle || naked || locked || subset ? null : findHiddenQuadruple(board, notes, useSetLogic);
+    if (hiddenQuad && !removalsMatchSolution(hiddenQuad.removed, solution)) hiddenQuad = null;
     if (locked) {
-      if (!removalsMatchSolution(locked.removed, solution)) return null;
       const nextNotes = cloneNotes(notes); locked.removed.forEach((key) => { const [row, col, digit] = key.split(':').map(Number); nextNotes[row][col] = nextNotes[row][col].filter((candidate) => candidate !== digit); });
       notes = nextNotes; tally.set('Locked Candidates', (tally.get('Locked Candidates') ?? 0) + 1);
       steps.push({ board: clone(board), notes, givens, removed: locked.removed, affected: locked.affected, placed: null, kind: 'Locked Candidates', description: `Locked Candidates: ${locked.digit} is confined to the overlap of complete units; ${locked.removed.size} Snyder notation${locked.removed.size === 1 ? ' is' : 's are'} removed in red.` });
       continue;
     }
     if (subset) {
-      if (!removalsMatchSolution(subset.removed, solution)) return null;
       const nextNotes = cloneNotes(notes); subset.removed.forEach((key) => { const [row, col, digit] = key.split(':').map(Number); nextNotes[row][col] = nextNotes[row][col].filter((candidate) => candidate !== digit); });
       const kind: MoveKind = subset.cells.length === 2 ? 'Naked Pair' : subset.cells.length === 3 ? 'Naked Triple' : 'Naked Quadruple';
       notes = nextNotes; tally.set(kind, (tally.get(kind) ?? 0) + 1);
@@ -145,7 +153,6 @@ function solveSteps(initial: Board, target?: Board, useSetLogic = true): { steps
       continue;
     }
     if (hiddenQuad) {
-      if (!removalsMatchSolution(hiddenQuad.removed, solution)) return null;
       const nextNotes = cloneNotes(notes); hiddenQuad.removed.forEach((key) => { const [row, col, digit] = key.split(':').map(Number); nextNotes[row][col] = nextNotes[row][col].filter((candidate) => candidate !== digit); }); notes = nextNotes;
       tally.set('Hidden Quadruple', (tally.get('Hidden Quadruple') ?? 0) + 1); const cells = hiddenQuad.cells.map(([row, col]) => position(row, col)).join(', ');
       steps.push({ board: clone(board), notes, givens, removed: hiddenQuad.removed, affected: hiddenQuad.affected, placed: null, kind: 'Hidden Quadruple', description: `Hidden Quadruple: ${hiddenQuad.digits.join('/')} is confined to ${cells}; ${hiddenQuad.removed.size} Snyder notation${hiddenQuad.removed.size === 1 ? ' is' : 's are'} removed in red.` }); continue;
