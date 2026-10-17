@@ -1,5 +1,5 @@
 import './style.css';
-import { getWalkthroughRating, mountWalkthrough } from './walkthrough';
+import { getWalkthroughProfile, mountWalkthrough } from './walkthrough';
 import { respectsSetTuples } from './set-tuples';
 
 type Board = number[][];
@@ -129,9 +129,13 @@ const generateButton = document.querySelector<HTMLButtonElement>('#generate')!;
 const diggingMethod = document.querySelector<HTMLSelectElement>('#digging-method')!;
 const givensCount = document.querySelector<HTMLParagraphElement>('#givens-count')!;
 const generateRating = document.querySelector<HTMLParagraphElement>('#generate-rating')!;
+const hardestTechnique = document.querySelector<HTMLParagraphElement>('#hardest-technique')!;
 const status = document.querySelector<HTMLParagraphElement>('#status')!;
 const walkthrough = document.querySelector<HTMLElement>('#generate-walkthrough')!;
 const exportButtons = document.querySelectorAll<HTMLButtonElement>('[data-export]');
+const gridSlideButtons = document.querySelectorAll<HTMLButtonElement>('[data-grid-slide]');
+const solutionCard = document.querySelector<HTMLElement>('#solution-card')!;
+const puzzleCard = document.querySelector<HTMLElement>('#puzzle-card')!;
 let currentSolution: Board | null = null;
 let currentPuzzle: Board | null = null;
 
@@ -191,10 +195,12 @@ function makeGrid(): void {
       render(puzzleGrid, puzzle, puzzle);
       mountWalkthrough(walkthrough, puzzle, 'Solution walkthrough', solution);
       const clues = puzzle.flat().filter(Boolean).length;
-      const rating = getWalkthroughRating(puzzle, solution);
+      const withSetLogic = getWalkthroughProfile(puzzle, solution, true);
+      const withoutSetLogic = getWalkthroughProfile(puzzle, solution, false);
       const method = diggingMethod.value === 'dual' ? 'dual-cell' : 'single-cell';
       givensCount.textContent = `${clues} givens`;
-      generateRating.textContent = rating === null ? 'Difficulty rating unavailable' : `Difficulty rating: ${rating}`;
+      generateRating.textContent = `Difficulty ratings: Set logic ${withSetLogic?.rating ?? 'unavailable'} · without Set logic ${withoutSetLogic?.rating ?? 'unavailable'}`;
+      hardestTechnique.textContent = `Hardest technique: ${withSetLogic?.hardest ?? 'unavailable'}`;
       status.textContent = `Done in ${(elapsed / 1000).toFixed(2)}s — ${method} digging, with exactly one solution.`;
     } catch {
       status.textContent = 'That one got tangled. Please try again.';
@@ -206,6 +212,10 @@ function makeGrid(): void {
 }
 
 generateButton.addEventListener('click', makeGrid);
+gridSlideButtons.forEach((button) => button.addEventListener('click', () => {
+  const showingSolution = button.dataset.gridSlide === 'solution'; solutionCard.hidden = !showingSolution; puzzleCard.hidden = showingSolution;
+  gridSlideButtons.forEach((slide) => slide.setAttribute('aria-pressed', String(slide === button)));
+}));
 exportButtons.forEach((button) => button.addEventListener('click', async () => {
   const board = button.dataset.export === 'solution' ? currentSolution : currentPuzzle;
   if (!board) return;

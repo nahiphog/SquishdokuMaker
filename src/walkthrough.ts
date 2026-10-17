@@ -149,8 +149,11 @@ function solveSteps(initial: Board, target?: Board, useSetLogic = true): { steps
   if (!boardsMatch(board, solution)) return null;
   return { steps, tally, rating };
 }
-export function getWalkthroughRating(puzzle: Board, solution?: Board): number | null {
-  return solveSteps(puzzle, solution, true)?.rating ?? null;
+export function getWalkthroughRating(puzzle: Board, solution?: Board): number | null { return solveSteps(puzzle, solution, true)?.rating ?? null; }
+export function getWalkthroughProfile(puzzle: Board, solution: Board | undefined, useSetLogic: boolean): { rating: number; hardest: MoveKind } | null {
+  const walk = solveSteps(puzzle, solution, useSetLogic); if (!walk) return null;
+  const techniques = [...new Set(walk.steps.map((step) => step.kind))].sort((left, right) => techniqueDifficulty[left] - techniqueDifficulty[right]);
+  return { rating: walk.rating, hardest: techniques[techniques.length - 1] };
 }
 function renderBoard(step: Step): HTMLElement {
   const grid = document.createElement('div'); grid.className = 'grid walkthrough-grid';

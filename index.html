@@ -23,14 +23,16 @@
         </label>
         <p id="givens-count" class="givens-count" aria-live="polite">Givens will appear here.</p>
         <p id="generate-rating" class="difficulty-rating" aria-live="polite">Difficulty rating will appear here.</p>
+        <p id="hardest-technique" class="hardest-technique" aria-live="polite">Hardest technique will appear here.</p>
         <p id="status" class="status" aria-live="polite">Ready when you are.</p>
       </section>
       <div class="boards">
-        <section class="puzzle-card" aria-label="Completed Squishdoku grid">
+        <div class="grid-toggle" role="group" aria-label="Generated grid view"><button type="button" data-grid-slide="puzzle" aria-pressed="true">Final dug puzzle</button><button type="button" data-grid-slide="solution" aria-pressed="false">Completed grid</button></div>
+        <section id="solution-card" class="puzzle-card" aria-label="Completed Squishdoku grid" hidden>
           <div class="card-topline"><span>Completed grid</span><details class="export-menu"><summary>Export</summary><div><button type="button" data-export="solution" data-format="clipboard">Clipboard</button><button type="button" data-export="solution" data-format="image">Image</button></div></details></div>
           <div id="solution-grid" class="grid" role="grid" aria-label="Completed Squishdoku grid"></div>
         </section>
-        <section class="puzzle-card" aria-label="Dug Squishdoku puzzle">
+        <section id="puzzle-card" class="puzzle-card" aria-label="Dug Squishdoku puzzle">
           <div class="card-topline"><span>Final dug puzzle</span><details class="export-menu"><summary>Export</summary><div><button type="button" data-export="puzzle" data-format="clipboard">Clipboard</button><button type="button" data-export="puzzle" data-format="image">Image</button></div></details></div>
           <div id="puzzle-grid" class="grid" role="grid" aria-label="Uniquely solvable Squishdoku puzzle"></div>
           <div class="legend"><i aria-hidden="true"></i><span>Dashed lines mark the squish seams</span></div>
