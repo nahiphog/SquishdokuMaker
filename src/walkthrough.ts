@@ -2,7 +2,7 @@ import './style.css';
 import { respectsSetTuples, setTuples } from './set-tuples';
 
 export type Board = number[][];
-type MoveKind = 'Snyder notation' | 'Naked Single' | 'House Single' | 'Locked Candidates' | 'Naked Pair' | 'Naked Triple' | 'Naked Quadruple' | 'Brute Force';
+type MoveKind = 'Snyder notation' | 'Naked Single' | 'House Single' | 'Locked Candidates' | 'Naked Pair' | 'Naked Triple' | 'Naked Quadruple' | 'Hidden Quadruple' | 'Brute Force';
 type Notes = number[][][];
 type Step = { board: Board; notes: Notes; givens: boolean[][]; removed: Set<string>; affected: Set<string>; placed: [number, number] | null; house?: Set<string>; kind: MoveKind; description: string };
 type HouseSingle = { row: number; col: number; value: number; house: Array<[number, number]> };
@@ -14,6 +14,7 @@ const techniqueDifficulty: Record<MoveKind, number> = {
   'Naked Pair': 50,
   'Naked Triple': 60,
   'Naked Quadruple': 70,
+  'Hidden Quadruple': 80,
   'Brute Force': 10000,
 };
 
@@ -98,6 +99,15 @@ function findNakedSubset(board: Board, notes: Notes, size: 2 | 3 | 4, useSetLogi
   }
   return null;
 }
+function findHiddenQuadruple(board: Board, notes: Notes, useSetLogic: boolean): { cells: Array<[number, number]>; digits: number[]; removed: Set<string>; affected: Set<string> } | null {
+  for (const unit of unitsFor(useSetLogic)) for (const digits of combinations([1, 2, 3, 4, 5, 6, 7, 8, 9], 4)) {
+    const cells = unit.filter(([row, col]) => !board[row][col] && notes[row][col].some((digit) => digits.includes(digit)));
+    if (cells.length !== 4 || !digits.every((digit) => cells.some(([row, col]) => notes[row][col].includes(digit)))) continue;
+    const removed = new Set<string>(); cells.forEach(([row, col]) => notes[row][col].filter((digit) => !digits.includes(digit)).forEach((digit) => removed.add(noteKey(row, col, digit))));
+    if (removed.size) return { cells, digits, removed, affected: new Set(unit.map(([row, col]) => cellKey(row, col))) };
+  }
+  return null;
+}
 function completedBoardIsValid(board: Board, useSetLogic: boolean): boolean {
   for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) {
     const value = board[row][col]; if (value < 1 || value > 9) return false;
@@ -116,7 +126,7 @@ function solveSteps(initial: Board, target?: Board, useSetLogic = true): { steps
   const steps: Step[] = [{ board: clone(board), notes, givens, removed: new Set(), affected: new Set(), placed: null, kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
   const tally = new Map<MoveKind, number>(); let rating = 0;
   while (board.some((row) => row.some((value) => !value))) {
-    const houseSingle = useSetLogic ? findHouseSingle(board, notes) : null; const naked = houseSingle ? null : findNaked(board, notes); const locked = houseSingle || naked ? null : findLockedCandidates(board, notes, useSetLogic); const subset = houseSingle || naked || locked ? null : findNakedSubset(board, notes, 2, useSetLogic) ?? findNakedSubset(board, notes, 3, useSetLogic) ?? findNakedSubset(board, notes, 4, useSetLogic);
+    const houseSingle = useSetLogic ? findHouseSingle(board, notes) : null; const naked = houseSingle ? null : findNaked(board, notes); const locked = houseSingle || naked ? null : findLockedCandidates(board, notes, useSetLogic); const subset = houseSingle || naked || locked ? null : findNakedSubset(board, notes, 2, useSetLogic) ?? findNakedSubset(board, notes, 3, useSetLogic) ?? findNakedSubset(board, notes, 4, useSetLogic); const hiddenQuad = houseSingle || naked || locked || subset ? null : findHiddenQuadruple(board, notes, useSetLogic);
     if (locked) {
       if (!removalsMatchSolution(locked.removed, solution)) return null;
       const nextNotes = cloneNotes(notes); locked.removed.forEach((key) => { const [row, col, digit] = key.split(':').map(Number); nextNotes[row][col] = nextNotes[row][col].filter((candidate) => candidate !== digit); });
@@ -134,6 +144,12 @@ function solveSteps(initial: Board, target?: Board, useSetLogic = true): { steps
       steps.push({ board: clone(board), notes, givens, removed: subset.removed, affected: subset.affected, placed: null, kind, description: `${kind}: ${digits} is locked in ${subsetCells}; ${subset.removed.size} Snyder notation${subset.removed.size === 1 ? ' is' : 's are'} removed in red.` });
       continue;
     }
+    if (hiddenQuad) {
+      if (!removalsMatchSolution(hiddenQuad.removed, solution)) return null;
+      const nextNotes = cloneNotes(notes); hiddenQuad.removed.forEach((key) => { const [row, col, digit] = key.split(':').map(Number); nextNotes[row][col] = nextNotes[row][col].filter((candidate) => candidate !== digit); }); notes = nextNotes;
+      tally.set('Hidden Quadruple', (tally.get('Hidden Quadruple') ?? 0) + 1); const cells = hiddenQuad.cells.map(([row, col]) => position(row, col)).join(', ');
+      steps.push({ board: clone(board), notes, givens, removed: hiddenQuad.removed, affected: hiddenQuad.affected, placed: null, kind: 'Hidden Quadruple', description: `Hidden Quadruple: ${hiddenQuad.digits.join('/')} is confined to ${cells}; ${hiddenQuad.removed.size} Snyder notation${hiddenQuad.removed.size === 1 ? ' is' : 's are'} removed in red.` }); continue;
+    }
     let row: number; let col: number; let value: number; let kind: MoveKind;
     if (houseSingle && houseSingle.value === solution[houseSingle.row][houseSingle.col]) { ({ row, col, value } = houseSingle); kind = 'House Single'; rating += 20; }
     else if (naked && naked[2] === solution[naked[0]][naked[1]]) { [row, col, value] = naked; kind = 'Naked Single'; rating += 10; }
@@ -150,10 +166,10 @@ function solveSteps(initial: Board, target?: Board, useSetLogic = true): { steps
   return { steps, tally, rating };
 }
 export function getWalkthroughRating(puzzle: Board, solution?: Board): number | null { return solveSteps(puzzle, solution, true)?.rating ?? null; }
-export function getWalkthroughProfile(puzzle: Board, solution: Board | undefined, useSetLogic: boolean): { rating: number; hardest: MoveKind; steps: number } | null {
+export function getWalkthroughProfile(puzzle: Board, solution: Board | undefined, useSetLogic: boolean): { rating: number; hardest: MoveKind; steps: number; techniques: MoveKind[] } | null {
   const walk = solveSteps(puzzle, solution, useSetLogic); if (!walk) return null;
   const techniques = [...new Set(walk.steps.map((step) => step.kind))].sort((left, right) => techniqueDifficulty[left] - techniqueDifficulty[right]);
-  return { rating: walk.rating, hardest: techniques[techniques.length - 1], steps: walk.steps.length - 1 };
+  return { rating: walk.rating, hardest: techniques[techniques.length - 1], steps: walk.steps.length - 1, techniques };
 }
 function renderBoard(step: Step): HTMLElement {
   const grid = document.createElement('div'); grid.className = 'grid walkthrough-grid';

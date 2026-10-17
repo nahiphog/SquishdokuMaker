@@ -13,6 +13,7 @@ export default defineConfig({
         simulationPattern: resolve(__dirname, 'simulation-pattern/index.html'),
         simlationSteps: resolve(__dirname, 'simlation-steps/index.html'),
         simulationSteps: resolve(__dirname, 'simulation-steps/index.html'),
+        simulationSubset: resolve(__dirname, 'simulation-subset/index.html'),
         techniques: resolve(__dirname, 'techniques/index.html'),
       },
     },
