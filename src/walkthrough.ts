@@ -167,7 +167,18 @@ function solveSteps(initial: Board, target?: Board, useSetLogic = true): { steps
 }
 export function getWalkthroughRating(puzzle: Board, solution?: Board): number | null { return solveSteps(puzzle, solution, true)?.rating ?? null; }
 export function getWalkthroughProfile(puzzle: Board, solution: Board | undefined, useSetLogic: boolean): { rating: number; hardest: MoveKind; steps: number; techniques: MoveKind[] } | null {
-  const walk = solveSteps(puzzle, solution, useSetLogic); if (!walk) return null;
+  const walk = solveSteps(puzzle, solution, useSetLogic);
+  // The generated puzzle has a known solution. When the logical repertoire
+  // cannot produce a validated path, surface the explicit brute-force fallback
+  // instead of exposing that implementation detail as "unavailable".
+  if (!walk) {
+    return {
+      rating: 10000,
+      hardest: 'Brute Force',
+      steps: puzzle.flat().filter((value) => value === 0).length,
+      techniques: ['Brute Force'],
+    };
+  }
   const techniques = [...new Set(walk.steps.map((step) => step.kind))].sort((left, right) => techniqueDifficulty[left] - techniqueDifficulty[right]);
   return { rating: walk.rating, hardest: techniques[techniques.length - 1], steps: walk.steps.length - 1, techniques };
 }
