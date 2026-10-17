@@ -165,6 +165,35 @@ function solveSteps(initial: Board, target?: Board, useSetLogic = true): { steps
   if (!boardsMatch(board, solution)) return null;
   return { steps, tally, rating };
 }
+function bruteForceWalk(initial: Board, target: Board | undefined, useSetLogic: boolean): { steps: Step[]; tally: Map<MoveKind, number>; rating: number } | null {
+  const solution = clone(target ?? initial);
+  if (!target && !solve(solution, useSetLogic)) return null;
+  // A target supplied by Verify is already checked by its solver. Validate the
+  // base Squishdoku constraints here so this remains a safe fallback with Set
+  // logic disabled as well.
+  if (!completedBoardIsValid(solution, false) || !matchesGivens(initial, solution)) return null;
+
+  const board = clone(initial);
+  const givens = initial.map((row) => row.map(Boolean));
+  let notes = createNotes(board, useSetLogic);
+  const steps: Step[] = [{ board: clone(board), notes: cloneNotes(notes), givens, removed: new Set(), affected: new Set(), placed: null, kind: 'Snyder notation', description: 'Step 0: candidate notation is placed in every empty cell.' }];
+  const tally = new Map<MoveKind, number>();
+  let rating = 0;
+
+  for (let row = 0; row < 7; row++) for (let col = 0; col < 7; col++) if (!board[row][col]) {
+    const value = solution[row][col];
+    if (!notes[row][col].includes(value)) return null;
+    board[row][col] = value;
+    const nextNotes = reconcileNotes(notes, board, useSetLogic);
+    const removed = removedNotes(notes, nextNotes, board);
+    notes = nextNotes;
+    tally.set('Brute Force', (tally.get('Brute Force') ?? 0) + 1);
+    rating += 10000;
+    const removalNote = removed.size ? ` ${removed.size} Snyder notation${removed.size === 1 ? ' is' : 's are'} removed in red.` : '';
+    steps.push({ board: clone(board), notes: cloneNotes(notes), givens, removed, affected: affectedCells(row, col, useSetLogic), placed: [row, col], kind: 'Brute Force', description: `The selected techniques could not complete this path; brute force places ${value} in ${position(row, col)} (+10,000).${removalNote}` });
+  }
+  return boardsMatch(board, solution) ? { steps, tally, rating } : null;
+}
 export function getWalkthroughRating(puzzle: Board, solution?: Board): number | null { return solveSteps(puzzle, solution, true)?.rating ?? null; }
 export function getWalkthroughProfile(puzzle: Board, solution: Board | undefined, useSetLogic: boolean): { rating: number; hardest: MoveKind; steps: number; techniques: MoveKind[] } | null {
   const walk = solveSteps(puzzle, solution, useSetLogic);
@@ -205,7 +234,10 @@ function renderBoard(step: Step): HTMLElement {
 export function mountWalkthrough(container: HTMLElement, puzzle: Board, heading = 'Solution walkthrough', target?: Board): void {
   let useSetLogic = true;
   const renderWalkthrough = (): void => {
-    const walk = solveSteps(puzzle, target, useSetLogic); container.replaceChildren();
+    // Switching off Set logic can expose a gap in the selected logical
+    // techniques. Keep the walkthrough usable by continuing with the solver's
+    // documented brute-force fallback instead of removing the whole UI.
+    const walk = solveSteps(puzzle, target, useSetLogic) ?? bruteForceWalk(puzzle, target, useSetLogic); container.replaceChildren();
     if (!walk) { container.textContent = 'A validated walkthrough is unavailable for this puzzle with the selected techniques.'; return; }
     let current = 0; const section = document.createElement('section'); section.className = 'walkthrough';
     const title = document.createElement('h2'); title.textContent = heading; const setLogicControl = document.createElement('label'); setLogicControl.className = 'set-logic-toggle';
