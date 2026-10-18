@@ -90,7 +90,7 @@ function renderGrid(board: Board, givens: Board, alternate?: Board): HTMLElement
   board.forEach((row, r) => row.forEach((value, c) => { const cell = document.createElement('div'); cell.className = 'cell'; if (r === 2 || r === 4) cell.classList.add('seam-row'); if (c === 2 || c === 4) cell.classList.add('seam-column'); if (!value) cell.classList.add('empty'); else if (givens[r][c]) cell.classList.add('given-cell'); else cell.classList.add('solved-cell'); if (alternate && value !== alternate[r][c]) cell.classList.add('diff'); cell.textContent = value ? String(value) : ''; grid.append(cell); }));
   return grid;
 }
-function downloadGridImage(board: Board, filename: string, givens: Board): void {
+async function copyGridImage(board: Board, givens: Board): Promise<void> {
   const canvas = document.createElement('canvas'); canvas.width = 700; canvas.height = 700;
   const context = canvas.getContext('2d')!; const inset = 14; const cell = 96; const gridSize = cell * 7;
   context.fillStyle = '#fffdf8'; context.fillRect(0, 0, 700, 700); context.fillRect(inset, inset, gridSize, gridSize);
@@ -100,15 +100,17 @@ function downloadGridImage(board: Board, filename: string, givens: Board): void 
   [2.5, 4.5].forEach((position) => { context.beginPath(); context.moveTo(inset + position * cell, inset); context.lineTo(inset + position * cell, inset + gridSize); context.stroke(); context.beginPath(); context.moveTo(inset, inset + position * cell); context.lineTo(inset + gridSize, inset + position * cell); context.stroke(); });
   context.setLineDash([]); context.font = '600 52px "Times New Roman"'; context.textAlign = 'center'; context.textBaseline = 'middle';
   board.forEach((row, r) => row.forEach((value, c) => { if (value) { context.fillStyle = givens[r][c] ? '#111111' : '#1769aa'; context.fillText(String(value), inset + (c + .5) * cell, inset + (r + .5) * cell); } }));
-  const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = filename; link.click();
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+  if (!blob || !navigator.clipboard || !window.ClipboardItem) throw new Error('Image clipboard is unavailable.');
+  await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
 }
-function exportMenu(board: Board, givens: Board, filename: string): HTMLDetailsElement {
-  const menu = document.createElement('details'); menu.className = 'export-menu'; const summary = document.createElement('summary'); summary.textContent = 'Export'; const actions = document.createElement('div');
-  const clipboard = document.createElement('button'); clipboard.type = 'button'; clipboard.textContent = 'Clipboard'; clipboard.addEventListener('click', async () => { try { await navigator.clipboard.writeText(board.flat().map((value) => value || '.').join('')); status.textContent = 'Grid copied to clipboard.'; } catch { status.textContent = 'Clipboard access was unavailable. Please try again.'; } menu.removeAttribute('open'); });
-  const image = document.createElement('button'); image.type = 'button'; image.textContent = 'Image'; image.addEventListener('click', () => { downloadGridImage(board, filename, givens); menu.removeAttribute('open'); });
-  actions.append(clipboard, image); menu.append(summary, actions); return menu;
+function exportActions(board: Board, givens: Board): HTMLDivElement {
+  const actions = document.createElement('div'); actions.className = 'export-actions';
+  const clipboard = document.createElement('button'); clipboard.type = 'button'; clipboard.textContent = 'Clipboard'; clipboard.addEventListener('click', async () => { try { await navigator.clipboard.writeText(board.flat().map((value) => value || '.').join('')); status.textContent = 'Grid copied to clipboard.'; } catch { status.textContent = 'Clipboard access was unavailable. Please try again.'; } });
+  const image = document.createElement('button'); image.type = 'button'; image.textContent = 'Image'; image.addEventListener('click', async () => { try { await copyGridImage(board, givens); status.textContent = 'Grid image copied to clipboard.'; } catch { status.textContent = 'Image clipboard access was unavailable. Please try again in a supported browser.'; } });
+  actions.append(clipboard, image); return actions;
 }
-function card(title: string, board: Board, givens: Board, alternate?: Board, label = 'Unique'): HTMLElement { const section = document.createElement('section'); section.className = 'puzzle-card verify-card'; const topline = document.createElement('div'); topline.className = 'card-topline'; const heading = document.createElement('span'); heading.textContent = title; const detail = document.createElement('span'); detail.textContent = alternate ? 'Differences in orange' : label; topline.append(heading, detail, exportMenu(board, givens, `squishdoku-${title.toLowerCase().replace(/ /g, '-')}.png`)); section.append(topline, renderGrid(board, givens, alternate)); return section; }
+function card(title: string, board: Board, givens: Board, alternate?: Board, label = 'Unique'): HTMLElement { const section = document.createElement('section'); section.className = 'puzzle-card verify-card'; const topline = document.createElement('div'); topline.className = 'card-topline'; const heading = document.createElement('span'); heading.textContent = title; const detail = document.createElement('span'); detail.textContent = alternate ? 'Differences in orange' : label; topline.append(heading, detail, exportActions(board, givens)); section.append(topline, renderGrid(board, givens, alternate)); return section; }
 verifyButton.addEventListener('click', () => {
   const puzzle = parsePuzzle(); results.replaceChildren();
   if (!puzzle) { status.textContent = 'Use exactly 49 characters (1–9 or .), or fill the 49 cells.'; return; }
