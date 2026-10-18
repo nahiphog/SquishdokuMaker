@@ -161,7 +161,7 @@ function render(grid: HTMLDivElement, board: Board, givens?: Board): void {
   }));
 }
 
-function downloadGridImage(board: Board, filename: string, givens?: Board): void {
+async function copyGridImage(board: Board, givens?: Board): Promise<void> {
   const canvas = document.createElement('canvas');
   canvas.width = 700; canvas.height = 700;
   const context = canvas.getContext('2d')!;
@@ -181,7 +181,9 @@ function downloadGridImage(board: Board, filename: string, givens?: Board): void
   });
   context.setLineDash([]); context.font = '600 52px Georgia'; context.textAlign = 'center'; context.textBaseline = 'middle';
   board.forEach((row, r) => row.forEach((value, c) => { if (value) { context.fillStyle = givens && !givens[r][c] ? '#1769aa' : '#111111'; context.fillText(String(value), inset + (c + .5) * cell, inset + (r + .5) * cell); } }));
-  const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = filename; link.click();
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+  if (!blob || !navigator.clipboard || !window.ClipboardItem) throw new Error('Image clipboard is unavailable.');
+  await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
 }
 
 function makeGrid(): void {
@@ -226,7 +228,12 @@ exportButtons.forEach((button) => button.addEventListener('click', async () => {
   const board = button.dataset.export === 'solution' ? currentSolution : currentPuzzle;
   if (!board) return;
   if (button.dataset.format === 'image') {
-    downloadGridImage(board, `squishdoku-${button.dataset.export}.png`, button.dataset.export === 'solution' ? currentPuzzle ?? undefined : board);
+    try {
+      await copyGridImage(board, button.dataset.export === 'solution' ? currentPuzzle ?? undefined : board);
+      status.textContent = 'Grid image copied to clipboard.';
+    } catch {
+      status.textContent = 'Image clipboard access was unavailable. Please try again in a supported browser.';
+    }
   } else {
     const text = board.flat().map((value) => value || '.').join('');
     try { await navigator.clipboard.writeText(text); status.textContent = 'Grid copied to clipboard.'; }
