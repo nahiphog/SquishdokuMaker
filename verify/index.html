@@ -16,11 +16,13 @@
           <input id="puzzle-string" inputmode="text" maxlength="49" spellcheck="false" placeholder="Use 1–9 and . for blanks" aria-describedby="string-help" />
         </label>
         <p id="string-help" class="input-help">Or fill the grid below. The string takes priority when supplied.</p>
-        <div id="entry-grid" class="grid entry-grid" role="grid" aria-label="Enter a Squishdoku puzzle"></div>
-        <div class="verify-actions">
-          <button id="verify-puzzle" type="button">Verify puzzle</button>
-          <button id="clear-input" class="secondary-button" type="button">Clear input</button>
-          <button id="paste-clipboard" class="secondary-button" type="button">Paste clipboard</button>
+        <div class="verify-grid-actions">
+          <div id="entry-grid" class="grid entry-grid" role="grid" aria-label="Enter a Squishdoku puzzle"></div>
+          <div class="verify-actions">
+            <button id="verify-puzzle" type="button">Verify puzzle</button>
+            <button id="clear-input" class="secondary-button" type="button">Clear input</button>
+            <button id="paste-clipboard" class="secondary-button" type="button">Paste clipboard</button>
+          </div>
         </div>
         <p id="verify-status" class="status" aria-live="polite">Enter a puzzle to check its solutions.</p>
       </section>

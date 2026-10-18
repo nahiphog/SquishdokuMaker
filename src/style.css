@@ -63,5 +63,9 @@ footer { margin: 0 auto; padding: 0 20px 27px; color: #78838a; font-size: .61rem
 /* Generate exposes both export choices directly instead of nesting them in a menu. */
 .export-actions { display: flex; gap: 6px; }.export-actions button { padding: 6px 8px; color: #d96445; background: transparent; border: 1px solid currentColor; box-shadow: none; font-size: .57rem; }.export-actions button:hover, .export-actions button:active { color: #263d58; transform: none; box-shadow: none; }
 
+/* Keep Verify's compact grid and controls together without an oversized title. */
+.verify-inputs { width: min(100%, 500px); }.verify-inputs h1 { font-size: clamp(1.75rem, 3.5vw, 2.8rem); }.verify-grid-actions { display: flex; align-items: center; gap: 12px; }.verify-grid-actions .entry-grid { margin-bottom: 0; }.verify-actions { flex: 1; flex-direction: column; flex-wrap: nowrap; align-items: stretch; }.verify-actions button { justify-content: center; }
+@media (max-width: 520px) { .verify-grid-actions { align-items: stretch; flex-direction: column; }.verify-grid-actions .entry-grid { margin: 0 auto; }.verify-actions { flex-direction: row; flex-wrap: wrap; }.verify-actions button { flex: 1 1 140px; } }
+
 /* Emphasize the two difficulty values and their corresponding hardest techniques. */
 #with-set-rating, #without-set-rating { font-size: 1.75rem; } #with-set-hardest, #without-set-hardest { font-size: .775rem; }
