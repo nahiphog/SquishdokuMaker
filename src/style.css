@@ -60,5 +60,8 @@ footer { margin: 0 auto; padding: 0 20px 27px; color: #78838a; font-size: .61rem
 /* The compact three-column Generate stats table is half its previous size. */
 .generate-stats { font-size: .93rem; }.generate-stats td { font-size: .7rem; }.generate-stats .stat-copy { font-size: .62rem; }
 
+/* Generate exposes both export choices directly instead of nesting them in a menu. */
+.export-actions { display: flex; gap: 6px; }.export-actions button { padding: 6px 8px; color: #d96445; background: transparent; border: 1px solid currentColor; box-shadow: none; font-size: .57rem; }.export-actions button:hover, .export-actions button:active { color: #263d58; transform: none; box-shadow: none; }
+
 /* Emphasize the two difficulty values and their corresponding hardest techniques. */
 #with-set-rating, #without-set-rating { font-size: .875rem; } #with-set-hardest, #without-set-hardest { font-size: .775rem; }

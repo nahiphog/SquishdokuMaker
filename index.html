@@ -35,11 +35,11 @@
       <div class="boards">
         <div class="grid-toggle" role="group" aria-label="Generated grid view"><button type="button" data-grid-slide="puzzle" aria-pressed="true">Final dug puzzle</button><button type="button" data-grid-slide="solution" aria-pressed="false">Completed grid</button></div>
         <section id="solution-card" class="puzzle-card" aria-label="Completed Squishdoku grid" hidden>
-          <div class="card-topline"><span>Completed grid</span><details class="export-menu"><summary>Export</summary><div><button type="button" data-export="solution" data-format="clipboard">Clipboard</button><button type="button" data-export="solution" data-format="image">Image</button></div></details></div>
+          <div class="card-topline"><span>Completed grid</span><div class="export-actions"><button type="button" data-export="solution" data-format="clipboard">Clipboard</button><button type="button" data-export="solution" data-format="image">Image</button></div></div>
           <div id="solution-grid" class="grid" role="grid" aria-label="Completed Squishdoku grid"></div>
         </section>
         <section id="puzzle-card" class="puzzle-card" aria-label="Dug Squishdoku puzzle">
-          <div class="card-topline"><span>Final dug puzzle</span><details class="export-menu"><summary>Export</summary><div><button type="button" data-export="puzzle" data-format="clipboard">Clipboard</button><button type="button" data-export="puzzle" data-format="image">Image</button></div></details></div>
+          <div class="card-topline"><span>Final dug puzzle</span><div class="export-actions"><button type="button" data-export="puzzle" data-format="clipboard">Clipboard</button><button type="button" data-export="puzzle" data-format="image">Image</button></div></div>
           <div id="puzzle-grid" class="grid" role="grid" aria-label="Uniquely solvable Squishdoku puzzle"></div>
         </section>
       </div>
