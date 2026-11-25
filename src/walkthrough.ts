@@ -100,7 +100,9 @@ function findNakedSubset(board: Board, notes: Notes, size: 2 | 3 | 4, useSetLogi
   return null;
 }
 function findHiddenQuadruple(board: Board, notes: Notes, useSetLogic: boolean): { cells: Array<[number, number]>; digits: number[]; removed: Set<string>; affected: Set<string> } | null {
-  for (const unit of unitsFor(useSetLogic)) for (const digits of combinations([1, 2, 3, 4, 5, 6, 7, 8, 9], 4)) {
+  // Hidden subsets require each selected digit to occur in the house. Seven-cell
+  // rows and columns only forbid repeats, so they cannot establish that premise.
+  for (const unit of useSetLogic ? [...regionUnits, ...setTuples] : regionUnits) for (const digits of combinations([1, 2, 3, 4, 5, 6, 7, 8, 9], 4)) {
     const cells = unit.filter(([row, col]) => !board[row][col] && notes[row][col].some((digit) => digits.includes(digit)));
     if (cells.length !== 4 || !digits.every((digit) => cells.some(([row, col]) => notes[row][col].includes(digit)))) continue;
     const removed = new Set<string>(); cells.forEach(([row, col]) => notes[row][col].filter((digit) => !digits.includes(digit)).forEach((digit) => removed.add(noteKey(row, col, digit))));
